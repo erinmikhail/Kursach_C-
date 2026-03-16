@@ -1,0 +1,29 @@
+# Сборка
+build/
+cmake-build-*/
+out/
+
+# Кэш
+.cache/
+.ccache/
+
+# Временные файлы
+*.swp
+*.swo
+*~
+
+# Файлы данных 
+data/
+*.db
+*.table
+*.idx
+
+# IDE
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Системные файлы
+.DS_Store
+Thumbs.db
