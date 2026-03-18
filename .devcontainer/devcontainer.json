@@ -18,14 +18,13 @@
                 "vadimcn.vscode-lldb",
                 "webfreak.debug",
                 "jeff-hykin.better-cpp-syntax",
-                "xaver.clang-format",
                 "llvm-vs-code-extensions.vscode-clangd"
             ],
 
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/bash",
                 "editor.formatOnSave": true,
-                "editor.defaultFormatter": "xaver.clang-format",
+                "editor.defaultFormatter": "ms-vscode.cpptools",
                 "clang-format.executable": "/usr/bin/clang-format-16",
                 "cmake.configureOnOpen": true,
                 "cmake.buildDirectory": "${workspaceFolder}/build",
