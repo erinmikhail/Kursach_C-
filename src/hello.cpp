@@ -1,6 +1,7 @@
 #include <iostream>
 
-int main () {
+int main()
+{
     std::cout << "Это ветка Ильи" << std::endl;
     return 0;
 }

@@ -17,14 +17,12 @@
                 "ms-azuretools.vscode-docker",
                 "vadimcn.vscode-lldb",
                 "webfreak.debug",
-                "jeff-hykin.better-cpp-syntax",
-                "llvm-vs-code-extensions.vscode-clangd"
+                "jeff-hykin.better-cpp-syntax"
             ],
 
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/bash",
                 "editor.formatOnSave": true,
-                "editor.defaultFormatter": "ms-vscode.cpptools",
                 "clang-format.executable": "/usr/bin/clang-format-16",
                 "cmake.configureOnOpen": true,
                 "cmake.buildDirectory": "${workspaceFolder}/build",
