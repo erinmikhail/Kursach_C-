@@ -1,6 +1,6 @@
 #include <iostream>
 
 int main() {
-    std::cout << "Это ветка Ильи" << std::endl;
+    std::cout << "Это главная ветка" << std::endl;
     return 0;
 }
