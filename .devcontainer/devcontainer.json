@@ -4,7 +4,6 @@
         "dockerfile": "Dockerfile",
         "context": ".."
     },
-
     "customizations": {
         "vscode": {
             "extensions": [
@@ -19,10 +18,9 @@
                 "webfreak.debug",
                 "jeff-hykin.better-cpp-syntax"
             ],
-
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/bash",
-                "editor.formatOnSave": true,
+                "editor.formatOnSave": false,
                 "clang-format.executable": "/usr/bin/clang-format-16",
                 "cmake.configureOnOpen": true,
                 "cmake.buildDirectory": "${workspaceFolder}/build",
@@ -38,22 +36,16 @@
             }
         }
     },
-
     "containerEnv": {
         "DEVCONTAINER": "1",
         "CCACHE_DIR": "/workspace/.ccache"
     },
-
     "mounts": [
         "source=dbms-ccache,target=/workspace/.ccache,type=volume"
     ],
-
     "postCreateCommand": "echo ' Dev container ready! Use CMake to configure and build.' && cmake --version && g++ --version",
-
     "postAttachCommand": "echo ' Welcome to DBMS development!'",
-
     "remoteUser": "root",
-
     "features": {
         "ghcr.io/devcontainers/features/git:1": {},
         "ghcr.io/devcontainers/features/common-utils:2": {}
