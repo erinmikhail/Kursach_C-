@@ -2,7 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace storage {
+namespace storage { 
     // конструктор под отр и закр и счет стр файла
     Pager::Pager(const std::string& filepath) : filepath_(filepath), num_pages(0) {
         file_.open(filepath_, std::ios::in | std::ios::out | std::ios::binary);
@@ -60,7 +60,7 @@ namespace storage {
     }
 
     void Pager::free_page(uint32_t page_num) {
-        TODO:
+        TODO: // реализовать при индкексах!!!
     }
 
     uint32_t Pager::get_num_pages() const {
