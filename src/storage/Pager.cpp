@@ -4,11 +4,11 @@
 
 namespace storage { 
     // конструктор под отр и закр и счет стр файла
-    Pager::Pager(const std::string& filepath) : filepath_(filepath), num_pages(0) {
+    Pager::Pager(const std::string& filepath) : filepath_(filepath), num_pages_(0) {
         file_.open(filepath_, std::ios::in | std::ios::out | std::ios::binary);
 
         if (!file_.is_open()){
-            file_open(filepath_; std::ios::out | std::ios::binary);
+            file_.open(filepath_, std::ios::out | std::ios::binary);
             file_.close();
 
             file_.open(filepath_, std::ios::in | std::ios::out | std::ios::binary);
@@ -20,17 +20,17 @@ namespace storage {
 
         file_.seekg(0, std::ios::end);
         std::streampos file_size = file_.tellg();
-        num_pages = file_size / PAGE_SIZE;
+        num_pages_ = file_size / PAGE_SIZE;
     }
 
     Pager::~Pager() {
-        if (file_is_open()) {
+        if (file_.is_open()) {
             file_.close();
         }
     }
 
     std::vector<char> Pager::read_page(uint32_t page_num){
-        if (page_num >= num_pages) {
+        if (page_num >= num_pages_) {
             throw std::out_of_range("Номер страницы выходит за пределы файла.");
         }
 
@@ -53,7 +53,8 @@ namespace storage {
     }
 
     uint32_t Pager::allocate_page() {
-        uint32_t new_page_num = num_pages++;
+        uint32_t new_page_num = num_pages_;
+        num_pages_++;
         std::vector<char> empty_page(PAGE_SIZE, 0);
         write_page(new_page_num, empty_page);
         return new_page_num;
@@ -64,6 +65,6 @@ namespace storage {
     }
 
     uint32_t Pager::get_num_pages() const {
-        return num_pages;
+        return num_pages_;
     }
 }

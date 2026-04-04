@@ -17,7 +17,7 @@ namespace storage {
         uint32_t num_pages_; // кол-во стр в файле
 
     public: 
-        explicit Pager(const std::strint& filepath);
+        explicit Pager(const std::string& filepath);
 
 
         ~Pager(); // сброс буфера и закрытие файла
@@ -34,5 +34,5 @@ namespace storage {
         void free_page(uint32_t page_num); // пометка стр как свободн для повтор исп.
 
         uint32_t get_num_pages() const; //возврат стр в файле тек
-    }
+    };
 }
