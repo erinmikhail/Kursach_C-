@@ -7,6 +7,14 @@ add_executable(PagerTests
 target_include_directories(PagerTests PRIVATE ${INCLUDE_DIR})
 target_link_libraries(PagerTests PRIVATE GTest::gtest GTest::gtest_main pthread)
 
+add_executable(BufferPoolTests
+    test_buffer_pool.cpp
+    ../src/storage/BufferPool.cpp
+    ../src/storage/Pager.cpp
+)
+target_include_directories(BufferPoolTests PRIVATE ${INCLUDE_DIR})
+target_link_libraries(BufferPoolTests PRIVATE GTest::gtest GTest::gtest_main pthread)
+
 #Тест закомментировал, нужно тупо убрать решетки где тесты, а то CMake не может найти эти файлы и ругается. Когда нужно будет протестировать эти классы, просто раскомментируешь и все заработает.
 
 
@@ -28,6 +36,7 @@ target_link_libraries(PagerTests PRIVATE GTest::gtest GTest::gtest_main pthread)
 # Регистрируем тесты для CTest
 include(GoogleTest)
 gtest_discover_tests(PagerTests)
+gtest_discover_tests(BufferPoolTests)
 #gtest_discover_tests(StringPoolTests)
 #gtest_discover_tests(RecordManagerTests)
 # gtest_discover_tests(NumberTests)
