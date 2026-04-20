@@ -25,6 +25,14 @@ add_executable(RecordManagerTests
 target_include_directories(RecordManagerTests PRIVATE ${INCLUDE_DIR})
 target_link_libraries(RecordManagerTests PRIVATE GTest::gtest GTest::gtest_main pthread)
 
+#add_executable(BufferPoolTests 
+#    test_buffer_pool.cpp 
+#    ../src/storage/BufferPool.cpp
+#    ../src/storage/Pager.cpp
+#)
+#target_include_directories(BufferPoolTests PRIVATE ${INCLUDE_DIR})
+#target_link_libraries(BufferPoolTests PRIVATE GTest::gtest GTest::gtest_main pthread)
+
 # Регистрируем тесты для CTest
 include(GoogleTest)
 gtest_discover_tests(PagerTests)
