@@ -61,7 +61,7 @@ namespace storage {
     }
 
     void Pager::free_page(uint32_t page_num) {
-        TODO: // реализовать при индкексах!!!
+        // TODO: // реализовать при индкексах!!!
     }
 
     uint32_t Pager::get_num_pages() const {
