@@ -1,8 +1,9 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
-#include <vector>
+#include <deque>
 #include <cstdint>
 
 namespace storage {
@@ -10,29 +11,33 @@ namespace storage {
 class StringPool {
 private:
     std::string filepath_;
-    // Быстрый поиск ID по строке (для INSERT)
-    std::unordered_map<std::string, uint32_t> string_to_id_;
-    // Быстрый поиск строки по ID (для SELECT)
-    std::vector<std::string> id_to_string_;
+    
+    // Храним легковесные "вьюшки", а не копии строк
+    std::unordered_map<std::string_view, uint32_t> string_to_id_;
+    
+    // Используем deque, чтобы адреса строк в памяти никогда не менялись
+    std::deque<std::string> id_to_string_;
     
     uint32_t next_id_ = 0;
+    
+    // Маркер: с какого ID начинаются строки, которые еще не сброшены на диск
+    uint32_t unsaved_start_index_ = 0; 
 
 public:
-    // Конструктор: принимает путь к файлу string_pool.bin
     explicit StringPool(const std::string& filepath);
+    
+    // Деструктор гарантирует, что мы не потеряем данные при выходе
+    ~StringPool();
 
-    // Загружает существующий пул строк с диска в память при старте СУБД
     void load();
 
-    // Основной метод: если строка новая — сохраняет её на диск и дает новый ID.
-    // Если строка уже была — просто возвращает старый ID.
-    uint32_t get_or_add_string(const std::string& str);
+    // Принимаем string_view, чтобы не создавать временных копий при вызове
+    uint32_t get_or_add_string(std::string_view str);
 
-    // Возвращает текст по его числовому идентификатору
     std::string get_string(uint32_t id) const;
 
-    // Вспомогательный метод: сохраняет весь пул на диск (синхронизация)
+    // Пакетный сброс новых данных на диск
     void flush();
 };
 
-}
+} // namespace storage
