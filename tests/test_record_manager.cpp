@@ -47,7 +47,7 @@ TEST_F(RecordManagerTest, PageCrossing) {
 
     EXPECT_EQ(manager.get_total_records(), 600);
 
-    EXPECT_EQ(pager.get_num_pages(), 2) << "Менеджер не запросил новую страницу у Pager'а!";
+    EXPECT_EQ(pager.get_num_pages(), 3) << "Менеджер не запросил новую страницу у Pager'а!";
     storage::Record rec_550 = manager.get_record(550);
     EXPECT_EQ(rec_550.id, 5500) << "Ошибка расчета смещения на второй странице";
     EXPECT_EQ(rec_550.name_id, 550);

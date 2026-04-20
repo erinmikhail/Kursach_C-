@@ -3,6 +3,7 @@
 #include "storage/Pager.hpp"
 #include <cstdint>
 #include <vector>
+#include <utility>
 
 namespace storage {
 
@@ -19,6 +20,16 @@ private:
     // Сколько записей помещается в одну страницу 4096 байт?
     // 4096 / sizeof(Record) = 512 записей.
     static constexpr size_t RECORDS_PER_PAGE = PAGE_SIZE / sizeof(Record);
+    
+    uint32_t total_records_; // Общее количество записей в таблице
+
+    std::pair<uint32_t, size_t> get_location(uint32_t record_index) const;
+
+    static constexpr size_t META_OFFSET_TOTAL_RECORDS = 0; // смещение в странице 0
+    // Загружает total_records_ из страницы 0
+    void load_metadata();
+    // Сохраняет текущее total_records_ в страницу 0
+    void save_metadata();
 
 public:
     // Конструктор: принимает ссылку на уже созданный Pager
