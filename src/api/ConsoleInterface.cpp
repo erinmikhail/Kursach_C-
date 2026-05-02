@@ -18,10 +18,10 @@ std::string build_border(const std::vector<size_t>& widths) {
     return line;
 }
 
-void print_row(const std::vector<std::string>& row, const std::vector<size_t>& widths) {
+void print_row(const std::vector<std::string_view>& row, const std::vector<size_t>& widths) {
     std::cout << "|";
     for (size_t column = 0; column < widths.size(); ++column) {
-        const std::string& cell = column < row.size() ? row[column] : "";
+        const std::string_view cell = column < row.size() ? row[column] : std::string_view{};
         std::cout << " " << cell;
         if (cell.size() < widths[column]) {
             std::cout << std::string(widths[column] - cell.size(), ' ');
@@ -40,22 +40,36 @@ void TableFormatter::print_table(const std::vector<std::string>& headers,
     }
 
     std::vector<size_t> widths(headers.size());
+    std::vector<std::string_view> header_views;
+    header_views.reserve(headers.size());
+
     for (size_t i = 0; i < headers.size(); ++i) {
-        widths[i] = headers[i].size();
+        std::string_view header(headers[i]);
+        widths[i] = header.size();
+        header_views.push_back(header);
     }
 
+    std::vector<std::vector<std::string_view>> view_rows;
+    view_rows.reserve(rows.size());
+
     for (auto const& row : rows) {
+        std::vector<std::string_view> view_row;
+        view_row.reserve(headers.size());
+
         for (size_t i = 0; i < headers.size(); ++i) {
-            const std::string cell = i < row.size() ? row[i] : "";
+            std::string_view cell = i < row.size() ? std::string_view(row[i]) : std::string_view{};
             widths[i] = std::max(widths[i], cell.size());
+            view_row.push_back(cell);
         }
+
+        view_rows.emplace_back(std::move(view_row));
     }
 
     const std::string border = build_border(widths);
     std::cout << border << "\n";
-    print_row(headers, widths);
+    print_row(header_views, widths);
     std::cout << border << "\n";
-    for (auto const& row : rows) {
+    for (auto const& row : view_rows) {
         print_row(row, widths);
     }
     std::cout << border << "\n";
