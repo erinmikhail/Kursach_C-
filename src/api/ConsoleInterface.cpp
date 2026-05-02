@@ -1,11 +1,14 @@
 #include "api/ConsoleInterface.hpp"
 
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
 
 namespace api {
 
 namespace {
+
+static constexpr size_t kMaxCellWidth = 1000;
 
 std::string build_border(const std::vector<size_t>& widths) {
     std::string line;
@@ -21,14 +24,35 @@ std::string build_border(const std::vector<size_t>& widths) {
 void print_row(const std::vector<std::string_view>& row, const std::vector<size_t>& widths) {
     std::cout << "|";
     for (size_t column = 0; column < widths.size(); ++column) {
-        const std::string_view cell = column < row.size() ? row[column] : std::string_view{};
-        std::cout << " " << cell;
-        if (cell.size() < widths[column]) {
-            std::cout << std::string(widths[column] - cell.size(), ' ');
+        std::string_view cell = column < row.size() ? row[column] : std::string_view{};
+        if (cell.size() > kMaxCellWidth) {
+            cell = cell.substr(0, kMaxCellWidth);
         }
-        std::cout << " |";
+        std::cout << " " << std::left << std::setw(static_cast<int>(widths[column])) << cell << std::right << " |";
     }
     std::cout << "\n";
+}
+
+void print_help() {
+    std::cout << "Системные команды:\n"
+              << "  .help          - показать общую подсказку\n"
+              << "  .help <topic>  - показать справку по теме\n"
+              << "  .clear         - очистить экран\n"
+              << "  .exit          - выйти из программы\n";
+}
+
+void print_help_for(std::string_view topic) {
+    if (topic == "insert") {
+        std::cout << "INSERT пока не реализован, но в будущем позволит добавлять записи в таблицу.\n";
+    } else if (topic == "select") {
+        std::cout << "SELECT пока не реализован. На данном этапе запросы только принимаются к обработке.\n";
+    } else if (topic == "exit") {
+        std::cout << "Команда .exit завершает программу независимо от аргументов, например .exit 0.\n";
+    } else if (topic == "clear") {
+        std::cout << "Команда .clear очищает экран терминала.\n";
+    } else {
+        std::cout << "Справка для темы '" << topic << "' не найдена.\n";
+    }
 }
 
 } // namespace
@@ -58,7 +82,7 @@ void TableFormatter::print_table(const std::vector<std::string>& headers,
 
         for (size_t i = 0; i < headers.size(); ++i) {
             std::string_view cell = i < row.size() ? std::string_view(row[i]) : std::string_view{};
-            widths[i] = std::max(widths[i], cell.size());
+            widths[i] = std::max(widths[i], std::min(cell.size(), kMaxCellWidth));
             view_row.push_back(cell);
         }
 
@@ -85,13 +109,19 @@ void REPL::read_input(std::string& input) const {
 }
 
 MetaCommandResult REPL::execute_meta_command(const std::string& command) {
-    if (command == ".exit") {
+    if (command == ".exit" || command.rfind(".exit ", 0) == 0) {
         return MetaCommandResult::EXIT_REQUESTED;
     }
+    if (command == ".clear" || command.rfind(".clear ", 0) == 0) {
+        std::cout << "\033[2J\033[1;1H";
+        return MetaCommandResult::SUCCESS;
+    }
     if (command == ".help") {
-        std::cout << "Системные команды:\n"
-                  << "  .help  - показать эту подсказку\n"
-                  << "  .exit  - выйти из программы\n";
+        print_help();
+        return MetaCommandResult::SUCCESS;
+    }
+    if (command.rfind(".help ", 0) == 0) {
+        print_help_for(command.substr(6));
         return MetaCommandResult::SUCCESS;
     }
 
