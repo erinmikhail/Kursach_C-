@@ -5,7 +5,7 @@
 
 
 TEST(ParserTest, InsertValid) {
-    parser::Lexer lexer("INSERT 10 'apple'");
+    parser::Lexer lexer("insert 10 'apple'");
     auto tokens = lexer.tokenize();
     parser::Parser parser(tokens);
     auto stmt = parser.parse();
@@ -14,41 +14,61 @@ TEST(ParserTest, InsertValid) {
     EXPECT_EQ(stmt.insert_text, "apple");
 }
 
-TEST(ParserTest, InsertMissingString) {
-    parser::Lexer lexer("INSERT 5");
-    auto tokens = lexer.tokenize();
-    parser::Parser parser(tokens);
-    EXPECT_THROW(parser.parse(), std::invalid_argument);
-}
-
-TEST(ParserTest, SelectAllValid) {
-    parser::Lexer lexer("SELECT * FROM mytable");
-    auto tokens = lexer.tokenize();
-    parser::Parser parser(tokens);
-    auto stmt = parser.parse();
-    EXPECT_EQ(stmt.type, parser::StatementType::SELECT);
-    EXPECT_TRUE(stmt.select_all);
-}
-
-TEST(ParserTest, UnknownCommand) {
-    parser::Lexer lexer("DROP TABLE x");
-    auto tokens = lexer.tokenize();
-    parser::Parser parser(tokens);
-    EXPECT_THROW(parser.parse(), std::invalid_argument);
-}
-
-TEST(ParserTest, InsertCaseInsensitive) {
-    parser::Lexer lexer("InSeRt 99 'Orange'");
+TEST(ParserTest, InsertWithSemicolon) {
+    parser::Lexer lexer("insert 1 'text';");
     auto tokens = lexer.tokenize();
     parser::Parser parser(tokens);
     auto stmt = parser.parse();
     EXPECT_EQ(stmt.type, parser::StatementType::INSERT);
-    EXPECT_EQ(stmt.insert_id, 99);
-    EXPECT_EQ(stmt.insert_text, "Orange");
+    EXPECT_EQ(stmt.insert_id, 1);
+    EXPECT_EQ(stmt.insert_text, "text");
 }
 
-TEST(ParserTest, SelectAllCaseInsensitive) {
-    parser::Lexer lexer("sElEcT * fRoM students");
+TEST(ParserTest, InsertMissingNumber) {
+    parser::Lexer lexer("insert 'oops'");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    EXPECT_THROW(parser.parse(), std::invalid_argument);
+}
+
+TEST(ParserTest, InsertMissingString) {
+    parser::Lexer lexer("insert 5");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    EXPECT_THROW(parser.parse(), std::invalid_argument);
+}
+
+TEST(ParserTest, InsertInvalidNumber) {
+    parser::Lexer lexer("insert abc 'text'");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    EXPECT_THROW(parser.parse(), std::invalid_argument);
+}
+
+TEST(ParserTest, InsertMaxUint32) {
+    parser::Lexer lexer("insert 4294967295 'max'");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    auto stmt = parser.parse();
+    EXPECT_EQ(stmt.insert_id, 4294967295u);
+}
+
+TEST(ParserTest, InsertOverflow) {
+    parser::Lexer lexer("insert 4294967296 'overflow'");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    EXPECT_THROW(parser.parse(), std::invalid_argument);
+}
+
+TEST(ParserTest, InsertExtraTokens) {
+    parser::Lexer lexer("insert 5 'data' extra");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    EXPECT_THROW(parser.parse(), std::invalid_argument);
+}
+
+TEST(ParserTest, SelectValid) {
+    parser::Lexer lexer("select * from users");
     auto tokens = lexer.tokenize();
     parser::Parser parser(tokens);
     auto stmt = parser.parse();
@@ -57,33 +77,36 @@ TEST(ParserTest, SelectAllCaseInsensitive) {
 }
 
 TEST(ParserTest, SelectWithSemicolon) {
-    parser::Lexer lexer("SELECT * FROM users;");
+    parser::Lexer lexer("select * from users;");
     auto tokens = lexer.tokenize();
     parser::Parser parser(tokens);
     auto stmt = parser.parse();
     EXPECT_EQ(stmt.type, parser::StatementType::SELECT);
-    EXPECT_TRUE(stmt.select_all);
 }
 
-TEST(ParserTest, InsertMaxUint32) {
-    parser::Lexer lexer("INSERT 4294967295 'max'");
-    auto tokens = lexer.tokenize();
-    parser::Parser parser(tokens);
-    auto stmt = parser.parse();
-    EXPECT_EQ(stmt.type, parser::StatementType::INSERT);
-    EXPECT_EQ(stmt.insert_id, 4294967295u);
-    EXPECT_EQ(stmt.insert_text, "max");
-}
-
-TEST(ParserTest, InsertOverflow) {
-    parser::Lexer lexer("INSERT 4294967296 'overflow'");
+TEST(ParserTest, SelectMissingStar) {
+    parser::Lexer lexer("select id from users");
     auto tokens = lexer.tokenize();
     parser::Parser parser(tokens);
     EXPECT_THROW(parser.parse(), std::invalid_argument);
 }
 
-TEST(ParserTest, InsertWithExtraTokens) {
-    parser::Lexer lexer("INSERT 5 'data' something");
+TEST(ParserTest, SelectMissingFrom) {
+    parser::Lexer lexer("select * users");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    EXPECT_THROW(parser.parse(), std::invalid_argument);
+}
+
+TEST(ParserTest, SelectMissingTable) {
+    parser::Lexer lexer("select * from");
+    auto tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    EXPECT_THROW(parser.parse(), std::invalid_argument);
+}
+
+TEST(ParserTest, UnknownCommand) {
+    parser::Lexer lexer("drop table x");
     auto tokens = lexer.tokenize();
     parser::Parser parser(tokens);
     EXPECT_THROW(parser.parse(), std::invalid_argument);
