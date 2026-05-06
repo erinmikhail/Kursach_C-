@@ -32,9 +32,19 @@ add_executable(StringPoolTests
 target_include_directories(StringPoolTests PRIVATE ${INCLUDE_DIR})
 target_link_libraries(StringPoolTests PRIVATE GTest::gtest GTest::gtest_main pthread)
 
+# 5. Тесты для Parser
+add_executable(ParserTests
+    test_parser.cpp
+    ../src/parser/Lexer.cpp
+    ../src/parser/Parser.cpp
+)
+target_include_directories(ParserTests PRIVATE ${INCLUDE_DIR})
+target_link_libraries(ParserTests PRIVATE GTest::gtest GTest::gtest_main pthread)
+
 # Регистрация всех тестов
 include(GoogleTest)
 gtest_discover_tests(PagerTests)
 gtest_discover_tests(RecordManagerTests)
 gtest_discover_tests(BufferPoolTests)
 gtest_discover_tests(StringPoolTests)
+gtest_discover_tests(ParserTests)

@@ -34,17 +34,16 @@ struct Statement {
     //и формирует промежуточное представление (Statement) для выполнения движком.
 class Parser {
 private:
-    std::vector<Token> tokens_; ///< Вектор токенов, полученный от лексера
-    size_t pos_ = 0;            ///< Текущий обрабатываемый токен
+    const std::vector<Token>& tokens_; ///< Вектор токенов, полученный от лексера
+    size_t pos_ = 0;                   ///< Текущий обрабатываемый токен
 
 
     //Возвращает текущий токен и сдвигает указатель вперед.
-
-    Token consume();
-
+    const Token& consume();
+    
     //Возвращает текущий токен без сдвига указателя.
-    Token peek() const;
-
+    const Token& peek() const;
+    
     //Проверяет, не закончились ли токены.
     bool is_at_end() const;
 
