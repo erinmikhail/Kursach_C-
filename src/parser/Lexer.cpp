@@ -30,13 +30,14 @@ void Lexer::skip_whitespace() {
 
 std::vector<Token> Lexer::tokenize() {
     std::vector<Token> tokens;
+    tokens.reserve(input_.size() / 5); 
 
     static const std::unordered_set<std::string> keywords = {
-        "insert", "select"
+        "insert", "select", "from", "where", "update", "delete", "create", "table"
     };
 
     static const std::unordered_set<char> symbols = {
-        '*', ',', ';', '(', ')'
+        '*', ',', ';', '(', ')', '=', '<', '>'
     };
 
     while (pos_ < input_.size()) {
@@ -46,71 +47,82 @@ std::vector<Token> Lexer::tokenize() {
             break;
         }
 
+        size_t start_pos = pos_;
         char current = peek();
 
-        if (std::isdigit(static_cast<unsigned char>(current))) {
-            std::string number;
-            while (pos_ < input_.size() && std::isdigit(static_cast<unsigned char>(peek()))) {
-                number += advance();
+        if (std::isdigit(static_cast<unsigned char>(current)) || 
+           (current == '-' && std::isdigit(static_cast<unsigned char>(input_[pos_ + 1])))) {
+            
+            if (current == '-') advance();
+            
+            while (std::isdigit(static_cast<unsigned char>(peek()))) {
+                advance();
             }
-            tokens.push_back({TokenType::NUMBER, number});
+            
+            if (peek() == '.') {
+                advance();
+                while (std::isdigit(static_cast<unsigned char>(peek()))) {
+                    advance();
+                }
+            }
+            
+            tokens.push_back({TokenType::NUMBER, input_.substr(start_pos, pos_ - start_pos)});
         }
 
         else if (current == '\'') {
             advance();
-            std::string str;
+            size_t str_start = pos_;
             bool closed = false;
 
             while (pos_ < input_.size()) {
-                char ch = peek();
-                if (ch == '\'') {
-                    advance();
+                if (peek() == '\'') {
                     closed = true;
                     break;
                 }
-                str += advance();
+                advance();
             }
 
             if (!closed) {
-                throw std::runtime_error("Unterminated string literal: missing closing quote");
+                throw std::runtime_error("Unterminated string literal at position " + std::to_string(start_pos));
             }
 
-            tokens.push_back({TokenType::STRING, str});
+            std::string str_val = input_.substr(str_start, pos_ - str_start);
+            advance();
+            
+            tokens.push_back({TokenType::STRING, std::move(str_val)});
         }
 
         else if (std::isalpha(static_cast<unsigned char>(current)) || current == '_') {
-            std::string word;
             while (pos_ < input_.size() && 
                    (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_')) {
-                word += advance();
+                advance();
             }
 
+            std::string word = input_.substr(start_pos, pos_ - start_pos);
+            
             std::string lower_word = word;
             std::transform(lower_word.begin(), lower_word.end(), lower_word.begin(),
                            [](unsigned char c) { return std::tolower(c); });
 
             if (keywords.find(lower_word) != keywords.end()) {
-                tokens.push_back({TokenType::KEYWORD, word}); 
+                tokens.push_back({TokenType::KEYWORD, std::move(lower_word)});
             } else {
-                tokens.push_back({TokenType::IDENTIFIER, word});
+                tokens.push_back({TokenType::IDENTIFIER, std::move(word)});
             }
         }
 
         else if (symbols.find(current) != symbols.end()) {
-            std::string sym(1, advance());
-            tokens.push_back({TokenType::SYMBOL, sym});
+            tokens.push_back({TokenType::SYMBOL, std::string(1, advance())});
         }
 
         else {
             throw std::runtime_error(
-                std::string("Unexpected character: '") + current + "' at position " + 
-                std::to_string(pos_)
+                "Unexpected character: '" + std::string(1, current) + "' at position " + std::to_string(pos_)
             );
         }
     }
 
     tokens.push_back({TokenType::END_OF_FILE, ""});
-
     return tokens;
 }
 
