@@ -1,3 +1,6 @@
 add_executable(Kursach
-    hello.cpp
+    main.cpp
+    api/ConsoleInterface.cpp
 )
+
+target_include_directories(Kursach PRIVATE ${CMAKE_SOURCE_DIR}/include)

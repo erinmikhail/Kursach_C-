@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #pragma once
 
 #include "parser/Lexer.hpp"
@@ -62,5 +63,3 @@ public:
 
     Statement parse();
 };
-
-}
