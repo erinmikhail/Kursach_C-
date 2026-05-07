@@ -73,7 +73,7 @@ std::unique_ptr<Statement> Parser::parse() {
         throw std::invalid_argument("Неизвестная команда: " + first.value);
     }
 
-    // Проверка на завершающую точку с запятой по ТЗ
+    // Проверка на завершающую точку с запятой по СЗоП
     if (!is_at_end()) {
         if (match(TokenType::SYMBOL, ";")) {
             // Ок, запрос корректно завершен
