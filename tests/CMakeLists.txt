@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Общий путь к заголовкам
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 
