@@ -3,12 +3,13 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <string_view>
 
 namespace api {
 
 namespace {
 
-static constexpr size_t kMaxCellWidth = 1000;
+static constexpr size_t kMaxCellWidth = 50; 
 
 std::string build_border(const std::vector<size_t>& widths) {
     std::string line;
@@ -21,13 +22,15 @@ std::string build_border(const std::vector<size_t>& widths) {
     return line;
 }
 
-void print_row(const std::vector<std::string_view>& row, const std::vector<size_t>& widths) {
+void print_row(const std::vector<std::string>& row, const std::vector<size_t>& widths) {
     std::cout << "|";
     for (size_t column = 0; column < widths.size(); ++column) {
-        std::string_view cell = column < row.size() ? row[column] : std::string_view{};
+        std::string_view cell = column < row.size() ? std::string_view(row[column]) : std::string_view{};
+        
         if (cell.size() > kMaxCellWidth) {
             cell = cell.substr(0, kMaxCellWidth);
         }
+        
         std::cout << " " << std::left << std::setw(static_cast<int>(widths[column])) << cell << std::right << " |";
     }
     std::cout << "\n";
@@ -55,7 +58,7 @@ void print_help_for(std::string_view topic) {
     }
 }
 
-} // namespace
+} 
 
 void TableFormatter::print_table(const std::vector<std::string>& headers,
                                  const std::vector<std::vector<std::string>>& rows) {
@@ -64,36 +67,24 @@ void TableFormatter::print_table(const std::vector<std::string>& headers,
     }
 
     std::vector<size_t> widths(headers.size());
-    std::vector<std::string_view> header_views;
-    header_views.reserve(headers.size());
 
     for (size_t i = 0; i < headers.size(); ++i) {
-        std::string_view header(headers[i]);
-        widths[i] = header.size();
-        header_views.push_back(header);
+        widths[i] = std::min(headers[i].size(), kMaxCellWidth);
     }
 
-    std::vector<std::vector<std::string_view>> view_rows;
-    view_rows.reserve(rows.size());
-
     for (auto const& row : rows) {
-        std::vector<std::string_view> view_row;
-        view_row.reserve(headers.size());
-
         for (size_t i = 0; i < headers.size(); ++i) {
-            std::string_view cell = i < row.size() ? std::string_view(row[i]) : std::string_view{};
-            widths[i] = std::max(widths[i], std::min(cell.size(), kMaxCellWidth));
-            view_row.push_back(cell);
+            size_t cell_size = i < row.size() ? row[i].size() : 0;
+            widths[i] = std::max(widths[i], std::min(cell_size, kMaxCellWidth));
         }
-
-        view_rows.emplace_back(std::move(view_row));
     }
 
     const std::string border = build_border(widths);
+    
     std::cout << border << "\n";
-    print_row(header_views, widths);
+    print_row(headers, widths);
     std::cout << border << "\n";
-    for (auto const& row : view_rows) {
+    for (auto const& row : rows) {
         print_row(row, widths);
     }
     std::cout << border << "\n";
