@@ -24,6 +24,13 @@ public:
                             const std::vector<std::vector<std::string>>& rows);
 };
 
+// Утилита для форматирования вывода в формате JSON (согласно ТЗ).
+class JsonFormatter {
+public:
+    static void print(const std::vector<std::string>& headers, 
+                      const std::vector<std::vector<std::string>>& rows);
+};
+
     //Read-Eval-Print Loop. Главный цикл взаимодействия пользователя с СУБД.
 class REPL {
 private:

@@ -4,12 +4,33 @@
 #include <iomanip>
 #include <iostream>
 #include <string_view>
+#include <fstream>
+#include <cctype>
 
 namespace api {
 
 namespace {
 
-static constexpr size_t kMaxCellWidth = 50; 
+static constexpr size_t kMaxCellWidth = 50;
+
+bool is_numeric(const std::string& str) {
+    if (str.empty()) return false;
+    size_t start = 0;
+    if (str[0] == '-' || str[0] == '+') {
+        if (str.size() == 1) return false;
+        start = 1;
+    }
+    bool has_dot = false;
+    for (size_t i = start; i < str.size(); ++i) {
+        if (str[i] == '.') {
+            if (has_dot) return false; // Две точки — не число
+            has_dot = true;
+        } else if (!std::isdigit(static_cast<unsigned char>(str[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
 
 std::string build_border(const std::vector<size_t>& widths) {
     std::string line;
@@ -58,7 +79,36 @@ void print_help_for(std::string_view topic) {
     }
 }
 
-} 
+}
+
+void JsonFormatter::print(const std::vector<std::string>& headers,
+                          const std::vector<std::vector<std::string>>& rows) {
+    std::cout << "[\n";
+    for (size_t r = 0; r < rows.size(); ++r) {
+        std::cout << "  {\n";
+        for (size_t c = 0; c < headers.size(); ++c) {
+            std::cout << "    \"" << headers[c] << "\": ";
+            
+            std::string val = c < rows[r].size() ? rows[r][c] : "";
+            if (is_numeric(val)) {
+                std::cout << val;
+            } else {
+                std::cout << "\"" << val << "\"";
+            }
+            
+            if (c + 1 < headers.size()) {
+                std::cout << ",";
+            }
+            std::cout << "\n";
+        }
+        std::cout << "  }";
+        if (r + 1 < rows.size()) {
+            std::cout << ",";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "]\n";
+}
 
 void TableFormatter::print_table(const std::vector<std::string>& headers,
                                  const std::vector<std::vector<std::string>>& rows) {
