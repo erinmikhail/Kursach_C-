@@ -1,66 +1,55 @@
 #pragma once
 
 #include "api/Logger.hpp"
-
 #include <string>
 #include <vector>
 
 namespace api {
 
-
-  //Результат выполнения мета-команды.
+// Результат выполнения мета-команды.
 enum class MetaCommandResult {
     SUCCESS,
     UNRECOGNIZED_COMMAND,
     EXIT_REQUESTED
 };
 
- //Утилита для красивого форматирования вывода результатов SQL-запросов.
- //Динамически рассчитывает ширину колонок и отрисовывает псевдографическую ASCII-таблицу.
-class TableFormatter {
-public:
-    //Отрисовывает таблицу в стандартный вывод (std::cout).
-    //headers Вектор строк с названиями колонок (например, {"id", "name"}).
-    //rows Двумерный вектор строк с данными (например, {{"1", "Apple"}, {"2", "Banana"}}).
-    static void print_table(const std::vector<std::string>& headers, 
-                            const std::vector<std::vector<std::string>>& rows);
-};
-
-// Утилита для форматирования вывода в формате JSON (согласно ТЗ).
+// Утилита для форматирования вывода в формате JSON (согласно ТЗ)[cite: 24].
 class JsonFormatter {
 public:
     static void print(const std::vector<std::string>& headers, 
                       const std::vector<std::vector<std::string>>& rows);
 };
 
-    //Read-Eval-Print Loop. Главный цикл взаимодействия пользователя с СУБД.
+// Утилита для псевдографического вывода (для отладки).
+class TableFormatter {
+public:
+    static void print_table(const std::vector<std::string>& headers, 
+                            const std::vector<std::vector<std::string>>& rows);
+};
+
+// Read-Eval-Print Loop. Главный цикл взаимодействия пользователя с СУБД[cite: 13].
 class REPL {
 private:
-    Logger logger_;
+    Logger logger_; // Объект логгера для записи активности [cite: 67]
 
-    //Печатает приглашение ко вводу.
     void print_prompt() const;
-
-    //Читает строку из стандартного ввода.
-    //input Ссылка на строку, куда будет записан ввод.
     void read_input(std::string& input) const;
-
-    //Обрабатывает служебные команды (начинающиеся с точки).
-    //command Текст команды (например, ".exit").
-    // return MetaCommandResult Статус выполнения команды.
-    MetaCommandResult execute_meta_command(const std::string& command);
-
-    //Обрабатывает SQL-запрос.
+    
+    // Вспомогательный метод для обработки одной строки (замер времени и логирование)
+    bool process_line(const std::string& input);
+    
     void execute_sql_query(const std::string& query);
+    MetaCommandResult execute_meta_command(const std::string& command);
 
 public:
     REPL() = default;
     ~REPL() = default;
 
-
-    //Запускает бесконечный цикл обработки команд.
-    //Выход из цикла происходит только при получении команды .exit.
+    // Запускает интерактивный бесконечный цикл обработки команд[cite: 14].
     void start();
+
+    // Запускает пакетный режим (чтение команд из файла)[cite: 15].
+    void run_batch(const std::string& filename);
 };
 
-} 
+} // namespace api
