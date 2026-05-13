@@ -1,6 +1,10 @@
 #include "api/ConsoleInterface.hpp"
 
+#include "parser/Lexer.hpp"
+#include "parser/Parser.hpp"
+
 #include <algorithm>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <string_view>
@@ -170,6 +174,15 @@ MetaCommandResult REPL::execute_meta_command(const std::string& command) {
     return MetaCommandResult::UNRECOGNIZED_COMMAND;
 }
 
+void REPL::execute_sql_query(const std::string& query) {
+    parser::Lexer lexer(query);
+    const std::vector<parser::Token> tokens = lexer.tokenize();
+    parser::Parser parser(tokens);
+    parser.parse();
+
+    std::cout << "SQL запрос принят к обработке: " << query << "\n";
+}
+
 void REPL::start() {
     while (true) {
         print_prompt();
@@ -185,15 +198,37 @@ void REPL::start() {
             continue;
         }
 
+        const auto started_at = std::chrono::steady_clock::now();
+        std::string status = "SUCCESS";
+        bool should_exit = false;
+
         if (input.front() == '.') {
-            const MetaCommandResult result = execute_meta_command(input);
-            if (result == MetaCommandResult::EXIT_REQUESTED) {
-                break;
+            try {
+                const MetaCommandResult result = execute_meta_command(input);
+                if (result == MetaCommandResult::UNRECOGNIZED_COMMAND) {
+                    status = "ERROR (MetaCommandError)";
+                } else if (result == MetaCommandResult::EXIT_REQUESTED) {
+                    should_exit = true;
+                }
+            } catch (const std::exception& ex) {
+                status = std::string("ERROR (MetaCommandError: ") + ex.what() + ")";
             }
-            continue;
+        } else {
+            try {
+                execute_sql_query(input);
+            } catch (const std::exception& ex) {
+                status = std::string("ERROR (ParserError: ") + ex.what() + ")";
+                std::cout << "Ошибка обработки SQL запроса: " << ex.what() << "\n";
+            }
         }
 
-        std::cout << "SQL запрос принят к обработке: " << input << "\n";
+        const auto finished_at = std::chrono::steady_clock::now();
+        const auto elapsed = std::chrono::duration<double, std::milli>(finished_at - started_at);
+        logger_.log_request(input, status, elapsed.count());
+
+        if (should_exit) {
+            break;
+        }
     }
 }
 

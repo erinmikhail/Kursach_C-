@@ -1,5 +1,7 @@
 #pragma once
 
+#include "api/Logger.hpp"
+
 #include <string>
 #include <vector>
 
@@ -34,6 +36,8 @@ public:
     //Read-Eval-Print Loop. Главный цикл взаимодействия пользователя с СУБД.
 class REPL {
 private:
+    Logger logger_;
+
     //Печатает приглашение ко вводу.
     void print_prompt() const;
 
@@ -45,6 +49,9 @@ private:
     //command Текст команды (например, ".exit").
     // return MetaCommandResult Статус выполнения команды.
     MetaCommandResult execute_meta_command(const std::string& command);
+
+    //Обрабатывает SQL-запрос.
+    void execute_sql_query(const std::string& query);
 
 public:
     REPL() = default;

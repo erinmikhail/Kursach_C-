@@ -1,10 +1,9 @@
 #pragma once
 
-#include <string>
 #include <fstream>
-#include <chrono>
+#include <string>
 
-namespace utils {
+namespace api {
 
 /**
  * @class Logger
@@ -35,4 +34,8 @@ public:
                      double duration_ms);
 };
 
+} // namespace api
+
+namespace utils {
+using Logger = api::Logger;
 } // namespace utils
