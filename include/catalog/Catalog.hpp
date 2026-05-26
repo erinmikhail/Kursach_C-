@@ -2,7 +2,7 @@
 #include "parser/Parser.hpp"
 #include "storage/Table.hpp"
 #include "storage/Pager.hpp"
-#include "b_star_plus_tree.hpp"
+#include "index/b_star_plus_tree.hpp"
 #include <unordered_map>
 #include <string>
 #include <stdexcept>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "storage/RecordManager.hpp"
-#include "b_star_plus_tree.hpp" 
+#include "index/b_star_plus_tree.hpp"
 #include <string>
 #include <vector>
 
