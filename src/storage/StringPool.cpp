@@ -16,6 +16,10 @@ void StringPool::load() {
         return;
     }
 
+    id_to_string_.clear();
+    string_to_id_.clear();
+    next_id_ = 0; 
+
     while (file.peek() != EOF) {
         uint32_t length = 0;
         if (!file.read(reinterpret_cast<char*>(&length), sizeof(length))) {

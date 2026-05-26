@@ -29,18 +29,6 @@ public:
 
 // Read-Eval-Print Loop. Главный цикл взаимодействия пользователя с СУБД[cite: 13].
 class REPL {
-private:
-    Logger logger_; // Объект логгера для записи активности [cite: 67]
-
-    void print_prompt() const;
-    void read_input(std::string& input) const;
-    
-    // Вспомогательный метод для обработки одной строки (замер времени и логирование)
-    bool process_line(const std::string& input);
-    
-    void execute_sql_query(const std::string& query);
-    MetaCommandResult execute_meta_command(const std::string& command);
-
 public:
     REPL() = default;
     ~REPL() = default;
@@ -50,6 +38,22 @@ public:
 
     // Запускает пакетный режим (чтение команд из файла)[cite: 15].
     void run_batch(const std::string& filename);
+    // Вспомогательный метод для обработки одной строки (замер времени и логирование)
+    bool process_line(const std::string& input);
+
+private:
+    Logger logger_; // Объект логгера для записи активности [cite: 67]
+
+    void print_prompt() const;
+    void read_input(std::string& input) const;
+    
+    
+    
+    
+    void execute_sql_query(const std::string& query);
+    MetaCommandResult execute_meta_command(const std::string& command);
+
+
 };
 
 } // namespace api

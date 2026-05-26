@@ -53,15 +53,30 @@ namespace storage {
     }
 
     uint32_t Pager::allocate_page() {
-        uint32_t new_page_num = num_pages_;
-        num_pages_++;
-        std::vector<char> empty_page(PAGE_SIZE, 0);
-        write_page(new_page_num, empty_page);
-        return new_page_num;
+        if (!free_pages_.empty()) {
+        uint32_t reused_id = free_pages_.back();
+        free_pages_.pop_back();
+
+        std::vector<char> zero_data(PAGE_SIZE, 0);
+        write_page(reused_id, zero_data);
+        
+        return reused_id;
+    }
+
+    uint32_t new_page_id = num_pages_;
+    num_pages_++;
+
+    std::vector<char> data(PAGE_SIZE, 0);
+    write_page(new_page_id, data);
+
+    return new_page_id;
     }
 
     void Pager::free_page(uint32_t page_num) {
-        // TODO: // реализовать при индкексах!!!
+        if (page_num >= num_pages_) {
+        throw std::out_of_range("Попытка освободить несуществующую страницу." + std::to_string(page_num));
+    }
+    free_pages_.push_back(page_num);
     }
 
     uint32_t Pager::get_num_pages() const {

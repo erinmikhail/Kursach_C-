@@ -33,7 +33,7 @@ std::vector<Token> Lexer::tokenize() {
     tokens.reserve(input_.size() / 5); 
 
     static const std::unordered_set<std::string> keywords = {
-        "insert", "select", "from", "where", "update", "delete", "create", "table",
+        "insert", "into", "value", "select", "from", "where", "update", "delete", "create", "table",
         "int", "string", "not_null", "indexed", "default", "between", "and", "or", 
         "like", "sum", "count", "avg", "database", "use", "revert"
     };

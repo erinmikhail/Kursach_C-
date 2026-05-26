@@ -15,6 +15,7 @@ namespace storage {
         std::string filepath_; // путь к файлы
         std::fstream file_; // файловый птоток для чтения и записи
         uint32_t num_pages_; // кол-во стр в файле
+        std::vector<uint32_t> free_pages_; 
 
     public: 
         explicit Pager(const std::string& filepath);

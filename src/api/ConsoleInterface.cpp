@@ -1,6 +1,7 @@
 #include "api/ConsoleInterface.hpp"
 #include "parser/Lexer.hpp"
 #include "parser/Parser.hpp"
+#include "catalog/Catalog.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -144,8 +145,11 @@ MetaCommandResult REPL::execute_meta_command(const std::string& command) {
 void REPL::execute_sql_query(const std::string& query) {
     parser::Lexer lexer(query);
     const auto tokens = lexer.tokenize();
-    parser::Parser parser(tokens);
-    parser.parse();
+    catalog::Catalog db_catalog;
+    parser::Parser parser(tokens, db_catalog);
+    auto stmt = parser.parse();
+    
+    // Здесь позже мы будем передавать stmt (Statement) в Execution Engine
 }
 
 bool REPL::process_line(const std::string& input) {

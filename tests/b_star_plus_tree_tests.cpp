@@ -1,238 +1,94 @@
-#include "gtest/gtest.h"
-#include <list>
-#include <random>
+#include <gtest/gtest.h>
 #include <vector>
-#include <b_star_plus_tree.h>
+#include <algorithm>
+#include "index/b_star_plus_tree.hpp" 
 
-template<typename tkey, typename tvalue>
-bool compare_results(
-        std::vector<typename BSP_tree<tkey, tvalue>::value_type> const &expected,
-        std::vector<typename BSP_tree<tkey, tvalue>::value_type> const &actual)
-{
-    if (expected.size() != actual.size()) return false;
-    for (size_t i = 0; i < expected.size(); ++i) {
-        if (expected[i].key != actual[i].key) return false;
-        if (expected[i].value != actual[i].value) return false;
-    }
-    return true;
-}
+using namespace db_engine;
 
-template<typename tvalue>
-bool compare_obtain_results(
-        std::vector<tvalue> const &expected,
-        std::vector<tvalue> const &actual)
-{
-    if (expected.size() != actual.size()) return false;
-    for (size_t i = 0; i < expected.size(); ++i) {
-        if (expected[i] != actual[i]) return false;
-    }
-    return true;
-}
-
-template <typename tkey, typename tvalue>
-struct test_data {
-    tkey key;
-    tvalue value;
-    size_t index; // Оставлено для совместимости сигнатуры, но больше не используется для жестких проверок
-    test_data(size_t i, tkey k, tvalue v) : index(i), key(k), value(v) {}
-};
-
-template<typename tkey, typename tvalue, typename comp, size_t t>
-bool infix_const_iterator_test(
-        BSP_tree<tkey, tvalue, comp, t> const &tree,
-        std::vector<test_data<tkey, tvalue>> const &expected_result)
-{
-    auto end_infix = tree.cend();
-    auto it = tree.cbegin();
-
-    for (auto const &item: expected_result) {
-        if (it == end_infix) return false;
-        
-        // Оставлена только проверка целостности данных (ключ и значение)
-        if (it->first != item.key || it->second != item.value) {
-            return false;
-        }
-        ++it;
-    }
-    return true;
-}
-
-TEST(bTreePositiveTests, test0) {
-    std::vector<test_data<int, std::string>> expected_result = {};
-    BSP_tree<int, std::string, std::less<int>, 1024> tree(std::less<int>(), nullptr);
-    EXPECT_TRUE(infix_const_iterator_test(tree, expected_result));
-}
-
-TEST(bTreePositiveTests, test1) {
-    std::vector<test_data<int, std::string>> expected_result = {
-            {0, 1, "a"}, {1, 2, "b"}, {2, 3, "d"},
-            {0, 4, "e"}, {0, 15, "c"}, {1, 27, "f"}
-    };
-    BSP_tree<int, std::string, std::less<int>, 3> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(27, std::string("f"));
-    EXPECT_TRUE(infix_const_iterator_test(tree, expected_result));
-}
-
-TEST(bTreePositiveTests, test2) {
-    std::vector<test_data<int, std::string>> expected_result = {
-            {0, 1, "a"}, {1, 2, "b"}, {2, 3, "d"}, {3, 4, "e"},
-            {4, 15, "c"}, {0, 24, "g"}, {0, 45, "k"}, {1, 100, "f"},
-            {2, 101, "j"}, {3, 193, "l"}, {4, 456, "h"}, {5, 534, "m"}
-    };
-    BSP_tree<int, std::string, std::less<int>, 5> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(100, std::string("f"));
-    tree.emplace(24, std::string("g")); tree.emplace(456, std::string("h"));
-    tree.emplace(101, std::string("j")); tree.emplace(45, std::string("k"));
-    tree.emplace(193, std::string("l")); tree.emplace(534, std::string("m"));
-    EXPECT_TRUE(infix_const_iterator_test(tree, expected_result));
-}
-
-TEST(bTreePositiveTests, test3) {
-    std::vector<test_data<int, std::string>> expected_result = {
-            {0, 1, "a"}, {1, 2, "b"}, {2, 3, "d"}, {3, 4, "e"},
-            {4, 15, "c"}, {5, 24, "g"}, {6, 45, "k"}, {7, 100, "f"},
-            {8, 101, "j"}, {9, 193, "l"}, {10, 456, "h"}, {11, 534, "m"}
-    };
-    BSP_tree<int, std::string, std::less<int>, 7> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(100, std::string("f"));
-    tree.emplace(24, std::string("g")); tree.emplace(456, std::string("h"));
-    tree.emplace(101, std::string("j")); tree.emplace(45, std::string("k"));
-    tree.emplace(193, std::string("l")); tree.emplace(534, std::string("m"));
-    EXPECT_TRUE(infix_const_iterator_test(tree, expected_result));
-}
-
-TEST(bTreePositiveTests, test4) {
-    std::vector<test_data<int, std::string>> expected_result = {
-            {0, 1, "a"}, {1, 2, "b"}, {2, 3, "d"}, {0, 4, "e"},
-            {0, 15, "c"}, {1, 24, "g"}, {2, 45, "k"}, {1, 100, "f"},
-            {0, 101, "j"}, {1, 193, "l"}, {2, 456, "h"}, {3, 534, "m"}
-    };
-    BSP_tree<int, std::string, std::less<int>, 3> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(100, std::string("f"));
-    tree.emplace(24, std::string("g")); tree.emplace(456, std::string("h"));
-    tree.emplace(101, std::string("j")); tree.emplace(45, std::string("k"));
-    tree.emplace(193, std::string("l")); tree.emplace(534, std::string("m"));
-    EXPECT_TRUE(infix_const_iterator_test(tree, expected_result));
-}
-
-TEST(bTreePositiveTests, test5) {
-    std::vector<test_data<int, std::string>> expected_result = {};
-    BSP_tree<int, std::string, std::less<int>, 2> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e"));
-    auto first_disposed = tree.at(2); auto second_disposed = tree.at(4);
-    tree.erase(2); tree.erase(4);
-    EXPECT_TRUE(infix_const_iterator_test(tree, expected_result));
-}
-
-TEST(bTreePositiveTests, test6) {
-    std::vector<test_data<int, std::string>> expected_result = {
-            {0, 2, "b"}, {1, 3, "d"}, {2, 4, "e"}, {0, 15, "c"},
-            {0, 45, "k"}, {1, 101, "j"}, {2, 456, "h"}, {3, 534, "m"}
-    };
-    BSP_tree<int, std::string, std::less<int>, 4> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(100, std::string("f"));
-    tree.emplace(24, std::string("g")); tree.emplace(456, std::string("h"));
-    tree.emplace(101, std::string("j")); tree.emplace(45, std::string("k"));
-    tree.emplace(193, std::string("l")); tree.emplace(534, std::string("m"));
+// 1. Базовый тест: Вставка и точный поиск (Point Query)
+TEST(DbIndexTests, BasicInsertAndFind) {
+    DbIndex index(5); // Степень 5
     
-    auto first_disposed = std::move(tree.at(1)); auto second_disposed = std::move(tree.at(100));
-    auto third_disposed = std::move(tree.at(193)); auto fourth_disposed = std::move(tree.at(24));
+    index.insert(42, 100);
+    index.insert(15, 200);
+    index.insert(100, 300);
+
+    auto res1 = index.find(42);
+    ASSERT_EQ(res1.size(), 1);
+    EXPECT_EQ(res1[0], 100);
+
+    auto res2 = index.find(999); // Несуществующий ключ
+    EXPECT_TRUE(res2.empty());
+}
+
+// 2. Тест на неуникальные ключи (Несколько строк с одинаковым значением)
+TEST(DbIndexTests, DuplicateKeysHandling) {
+    DbIndex index(5);
     
-    tree.erase(1); tree.erase(100); tree.erase(193); tree.erase(24);
-    EXPECT_TRUE(infix_const_iterator_test(tree, expected_result));
-    EXPECT_TRUE(first_disposed == "a"); EXPECT_TRUE(second_disposed == "f");
-    EXPECT_TRUE(third_disposed == "l"); EXPECT_TRUE(fourth_disposed == "g");
+    // Представим, что у нас три Ивана с возрастом 25 (RowID: 1, 2, 3)
+    index.insert(25, 1);
+    index.insert(25, 2);
+    index.insert(25, 3);
+
+    auto res = index.find(25);
+    ASSERT_EQ(res.size(), 3);
+    
+    // Проверяем, что все RowID на месте
+    EXPECT_NE(std::find(res.begin(), res.end(), 1), res.end());
+    EXPECT_NE(std::find(res.begin(), res.end(), 2), res.end());
+    EXPECT_NE(std::find(res.begin(), res.end(), 3), res.end());
 }
 
-TEST(bTreePositiveTests, test7) {
-    std::vector<std::string> expected_result = {"g", "d", "e", " ", "l", "a", "b", "y"};
-    BSP_tree<int, std::string, std::less<int>, 5> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::move(std::string("a"))); tree.emplace(2, std::move(std::string("b")));
-    tree.emplace(15, std::move(std::string("c"))); tree.emplace(3, std::move(std::string("d")));
-    tree.emplace(4, std::move(std::string("e"))); tree.emplace(100, std::move(std::string(" ")));
-    tree.emplace(24, std::move(std::string("g"))); tree.emplace(-456, std::move(std::string("h")));
-    tree.emplace(101, std::move(std::string("j"))); tree.emplace(-45, std::move(std::string("k")));
-    tree.emplace(-193, std::move(std::string("l"))); tree.emplace(534, std::move(std::string("m")));
-    tree.emplace(1000, std::move(std::string("y")));
+// 3. Тест на сплит (Разделение узлов при переполнении)
+TEST(DbIndexTests, NodeSplitTrigger) {
+    DbIndex index(2); // Степень 2: максимум 3 ключа в узле. Будет много сплитов!
+    
+    for (int i = 1; i <= 20; ++i) {
+        index.insert(i * 10, i); // Ключи: 10, 20, 30... 200
+    }
 
-    std::vector<std::string> actual_result = {
-            tree.at(24), tree.at(3), tree.at(4), tree.at(100),
-            tree.at(-193), tree.at(1), tree.at(2), tree.at(1000)
-    };
-    EXPECT_TRUE(compare_obtain_results(expected_result, actual_result));
+    // Проверяем, что ничего не потерялось после сплитов и роста дерева в высоту
+    for (int i = 1; i <= 20; ++i) {
+        auto res = index.find(i * 10);
+        ASSERT_EQ(res.size(), 1);
+        EXPECT_EQ(res[0], static_cast<RowID>(i));
+    }
 }
 
-TEST(bTreePositiveTests, test8) {
-    std::vector<std::string> expected_result = {"y", "l", "a", "g", "k", "b", "c", "h"};
-    BSP_tree<int, std::string, std::less<int>, 4> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(100, std::string(" "));
-    tree.emplace(24, std::string("g")); tree.emplace(-456, std::string("h"));
-    tree.emplace(101, std::string("j")); tree.emplace(-45, std::string("k"));
-    tree.emplace(-193, std::string("l")); tree.emplace(534, std::string("m"));
-    tree.emplace(1000, std::string("y"));
+// 4. Тест на диапазонный поиск (Та самая фишка B*+ дерева для BETWEEN)
+TEST(DbIndexTests, RangeSearchBetween) {
+    DbIndex index(3); // Степень 3
+    
+    // Вставляем ключи вразброс, чтобы дерево их отсортировало
+    std::vector<int> keys = {50, 10, 90, 20, 80, 30, 70, 40, 60, 100};
+    for (size_t i = 0; i < keys.size(); ++i) {
+        index.insert(keys[i], static_cast<RowID>(i + 1));
+    }
 
-    std::vector<std::string> actual_result = {
-            tree.at(1000), tree.at(-193), tree.at(1), tree.at(24),
-            tree.at(-45), tree.at(2), tree.at(15), tree.at(-456)
-    };
-    EXPECT_TRUE(compare_obtain_results(expected_result, actual_result));
+    // Ищем значения BETWEEN 30 AND 70
+    auto res = index.find_range(30, 70);
+    
+    // Должны найтись: 30, 40, 50, 60, 70 (всего 5 штук)
+    ASSERT_EQ(res.size(), 5);
 }
 
-TEST(bTreePositiveTests, test9) {
-    // В тесте 9 исправлен массив expected_result. Было 6 элементов, хотя в дерево вставлялось 12.
-    std::vector<BSP_tree<int, std::string>::value_type> expected_result = {
-            { 1, "a" }, { 2, "b" }, { 3, "d" }, { 4, "e" },
-            { 15, "c" }, { 24, "g" }, { 45, "k" }, { 100, "f" },
-            { 101, "j" }, { 193, "l" }, { 456, "h" }, { 534, "m" }
-    };
-    BSP_tree<int, std::string, std::less<int>, 5> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(100, std::string("f"));
-    tree.emplace(24, std::string("g")); tree.emplace(456, std::string("h"));
-    tree.emplace(101, std::string("j")); tree.emplace(45, std::string("k"));
-    tree.emplace(193, std::string("l")); tree.emplace(534, std::string("m"));
-
-    auto b = tree.begin(); auto e = tree.end();
-    std::vector<decltype(tree)::value_type> actual_result(b, e);
-    EXPECT_TRUE(compare_obtain_results(expected_result, actual_result));
-}
-
-TEST(bTreeNegativeTests, test1) {
-    BSP_tree<int, std::string, std::less<int>, 3> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e"));
-    EXPECT_EQ(tree.erase(45), tree.end());
-}
-
-TEST(bTreeNegativeTests, test3) {
-    BSP_tree<int, std::string, std::less<int>, 4> tree(std::less<int>(), nullptr);
-    tree.emplace(1, std::string("a")); tree.emplace(2, std::string("b"));
-    tree.emplace(15, std::string("c")); tree.emplace(3, std::string("d"));
-    tree.emplace(4, std::string("e")); tree.emplace(100, std::string(" "));
-    tree.emplace(24, std::string("g")); tree.emplace(-456, std::string("h"));
-    tree.emplace(101, std::string("j")); tree.emplace(-45, std::string("k"));
-    tree.emplace(-193, std::string("l")); tree.emplace(534, std::string("m"));
-    tree.emplace(1000, std::string("y"));
-    EXPECT_EQ(tree.erase(1001), tree.end());
-}
-
-int main(int argc, char **argv) {
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+// 5. Тест на удаление (DELETE)
+TEST(DbIndexTests, RemoveRowID) {
+    DbIndex index(5);
+    
+    index.insert(25, 10);
+    index.insert(25, 20); // Два человека с возрастом 25
+    
+    // Удаляем только одного
+    index.remove(25, 10);
+    
+    auto res1 = index.find(25);
+    ASSERT_EQ(res1.size(), 1);
+    EXPECT_EQ(res1[0], 20); // Остался только второй
+    
+    // Удаляем последнего
+    index.remove(25, 20);
+    
+    auto res2 = index.find(25);
+    EXPECT_TRUE(res2.empty()); // Ключ 25 должен полностью исчезнуть
 }
