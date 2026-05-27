@@ -25,10 +25,14 @@ private:
     std::unordered_map<std::string, std::unordered_map<std::string, parser::TableMetadata>> databases_;
     std::string active_database_;
     std::unordered_map<std::string, TableContext> opened_tables_;
+    std::filesystem::path data_dir_;
     storage::StringPool string_pool_; 
 
 public:
-    Catalog() : string_pool_("global_string_pool.bin") {
+    explicit Catalog(const std::string& data_dir = ".")
+        : data_dir_(data_dir.empty() ? "." : data_dir),
+          string_pool_(file_path("global_string_pool.bin")) {
+        std::filesystem::create_directories(data_dir_);
         databases_["default_db"] = {};
         active_database_ = "default_db";
     }
@@ -93,8 +97,8 @@ public:
         opened_tables_.erase(key);
         databases_[db_name].erase(table_name);
         
-        std::filesystem::remove(key + ".bin");
-        std::filesystem::remove(key + ".idx");
+        std::filesystem::remove(file_path(key + ".bin"));
+        std::filesystem::remove(file_path(key + ".idx"));
     }
 
     storage::Table& getTable(const std::string& db_name, const std::string& table_name) {
@@ -107,9 +111,14 @@ public:
     }
 
 private:
+    std::string file_path(const std::string& filename) const {
+        if (data_dir_ == ".") return filename;
+        return (data_dir_ / filename).string();
+    }
+
     void openTable(const std::string& db_name, const std::string& table_name) {
         std::string key = db_name + "." + table_name;
-        std::string filename = key + ".bin";
+        std::string filename = file_path(key + ".bin");
 
         auto meta = getTableMetadata(db_name, table_name);
         int indexed_col = -1;

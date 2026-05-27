@@ -93,19 +93,50 @@ bool Executor::eval_cond(parser::Expression* expr, const storage::Record& rec, c
 }
 
 void Executor::execute(const parser::Statement& stmt) {
+    QueryResult result = execute_structured(stmt);
+    if (!result.text.empty()) std::cout << result.text;
+    if (!result.headers.empty()) api::JsonFormatter::print(result.headers, result.rows);
+}
+
+QueryResult Executor::execute_structured(const parser::Statement& stmt) {
+    QueryResult result;
     switch (stmt.type) {
-        case parser::StatementType::CREATE_DATABASE: execute_create_database(static_cast<const parser::CreateDatabaseStatement&>(stmt)); break;
-        case parser::StatementType::DROP_DATABASE: execute_drop_database(static_cast<const parser::DropDatabaseStatement&>(stmt)); break;
-        case parser::StatementType::USE: execute_use(static_cast<const parser::UseStatement&>(stmt)); break;
-        case parser::StatementType::CREATE_TABLE: execute_create_table(static_cast<const parser::CreateTableStatement&>(stmt)); break;
-        case parser::StatementType::DROP_TABLE: execute_drop_table(static_cast<const parser::DropTableStatement&>(stmt)); break;
-        case parser::StatementType::INSERT: execute_insert(static_cast<const parser::InsertStatement&>(stmt)); break;
-        case parser::StatementType::UPDATE: execute_update(static_cast<const parser::UpdateStatement&>(stmt)); break;
-        case parser::StatementType::DELETE: execute_delete(static_cast<const parser::DeleteStatement&>(stmt)); break;
-        case parser::StatementType::SELECT: execute_select(static_cast<const parser::SelectStatement&>(stmt)); break;
-        case parser::StatementType::REVERT: execute_revert(static_cast<const parser::RevertStatement&>(stmt)); break;
-        default: break;
+        case parser::StatementType::CREATE_DATABASE:
+            execute_create_database(static_cast<const parser::CreateDatabaseStatement&>(stmt));
+            break;
+        case parser::StatementType::DROP_DATABASE:
+            execute_drop_database(static_cast<const parser::DropDatabaseStatement&>(stmt));
+            break;
+        case parser::StatementType::USE:
+            execute_use(static_cast<const parser::UseStatement&>(stmt));
+            break;
+        case parser::StatementType::CREATE_TABLE:
+            execute_create_table(static_cast<const parser::CreateTableStatement&>(stmt));
+            break;
+        case parser::StatementType::DROP_TABLE:
+            execute_drop_table(static_cast<const parser::DropTableStatement&>(stmt));
+            break;
+        case parser::StatementType::INSERT:
+            execute_insert(static_cast<const parser::InsertStatement&>(stmt));
+            break;
+        case parser::StatementType::UPDATE:
+            execute_update(static_cast<const parser::UpdateStatement&>(stmt));
+            break;
+        case parser::StatementType::DELETE:
+            execute_delete(static_cast<const parser::DeleteStatement&>(stmt));
+            break;
+        case parser::StatementType::SELECT:
+            return execute_select_structured(static_cast<const parser::SelectStatement&>(stmt));
+        case parser::StatementType::REVERT: {
+            const auto& revert_stmt = static_cast<const parser::RevertStatement&>(stmt);
+            execute_revert(revert_stmt);
+            result.text = "Database reverted to " + revert_stmt.timestamp + "\n";
+            break;
+        }
+        default:
+            break;
     }
+    return result;
 }
 
 void Executor::execute_create_database(const parser::CreateDatabaseStatement& stmt) { catalog_.createDatabase(stmt.db_name); }
@@ -239,10 +270,14 @@ void Executor::execute_revert(const parser::RevertStatement& stmt) {
 
         table.update_record(row_id, r);
     }
-    std::cout << "Database reverted to " << stmt.timestamp << "\n";
 }
 
 void Executor::execute_select(const parser::SelectStatement& stmt) {
+    QueryResult result = execute_select_structured(stmt);
+    api::JsonFormatter::print(result.headers, result.rows);
+}
+
+QueryResult Executor::execute_select_structured(const parser::SelectStatement& stmt) {
     auto db = catalog_.getActiveDatabase();
     auto meta = catalog_.getTableMetadata(db, stmt.table_name);
     auto& table = catalog_.getTable(db, stmt.table_name);
@@ -323,7 +358,10 @@ void Executor::execute_select(const parser::SelectStatement& stmt) {
         }
     }
 
-    api::JsonFormatter::print(headers, rows);
+    QueryResult result;
+    result.headers = std::move(headers);
+    result.rows = std::move(rows);
+    return result;
 }
 
 } 
