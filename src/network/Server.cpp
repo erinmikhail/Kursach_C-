@@ -1,6 +1,7 @@
 #include "network/Server.hpp"
 #include "parser/Lexer.hpp"
 #include "parser/Parser.hpp"
+#include "core/QueryRunner.hpp"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -56,36 +57,19 @@ std::string Server::generate_uuid() {
 }
 
 std::string Server::execute_query(const std::string& query, bool& is_error, double& duration) {
-    if (query.empty()) return "";
-
-    auto start_time = std::chrono::steady_clock::now();
-    std::string status = "SUCCESS";
-    is_error = false;
-    
-    std::stringstream buffer;
-    std::streambuf* old_cout = std::cout.rdbuf(buffer.rdbuf());
-
-    try {
-        parser::Lexer lexer(query);
-        auto tokens = lexer.tokenize();
-        parser::Parser parser(tokens, catalog_);
-        auto stmt = parser.parse();
-        executor_.execute(*stmt);
-    } catch (const std::exception& e) {
-        status = std::string("ERROR: ") + e.what();
-        buffer << "Ошибка: " << e.what() << "\n";
-        is_error = true;
+    if (query.empty()) {
+        is_error = false;
+        duration = 0.0;
+        return "";
     }
 
-    std::cout.rdbuf(old_cout);
-
-    auto end_time = std::chrono::steady_clock::now();
-    std::chrono::duration<double, std::milli> diff = end_time - start_time;
-    duration = diff.count();
-    logger_.log_request(query, status, duration);
-
-    return buffer.str();
+    core::QueryResult result = core::run_query(query, catalog_, executor_, logger_);
+    is_error = !result.ok;
+    duration = result.duration_ms;
+    std::string response = core::format_query_result(result);
+    return response == "OK\n" ? "" : response;
 }
+
 
 void Server::handle_async(const std::string& query, const std::string& uuid, const std::string& db_name) {
     catalog_.setActiveDatabase(db_name);

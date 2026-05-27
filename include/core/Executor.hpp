@@ -1,6 +1,7 @@
 #pragma once
 #include "parser/Parser.hpp"
 #include "catalog/Catalog.hpp"
+#include "core/QueryResult.hpp"
 
 namespace core {
 
@@ -24,6 +25,7 @@ private:
 public:
     explicit Executor(catalog::Catalog& catalog) : catalog_(catalog) {}
     void execute(const parser::Statement& stmt);
+    QueryResult execute_structured(const parser::Statement& stmt);
 
 private:
     void execute_create_database(const parser::CreateDatabaseStatement& stmt);
@@ -35,6 +37,7 @@ private:
     void execute_update(const parser::UpdateStatement& stmt);
     void execute_delete(const parser::DeleteStatement& stmt);
     void execute_select(const parser::SelectStatement& stmt);
+    QueryResult execute_select_structured(const parser::SelectStatement& stmt);
 };
 
 }
