@@ -1,56 +1,64 @@
-kursach_c_plus/
-├── .devcontainer/            # Настройки среды разработки (Docker, VS Code)
+kursach_c_plus/  (репозиторий: Kursach_C-)
+
+├── .devcontainer/            # (опционально) настройки контейнера разработки (Docker, VS Code)
 │   ├── devcontainer.json
 │   └── Dockerfile
 │
+├── docs/                     # Документация по проекту и пояснительные материалы
+│   ├── Consoleface.txt
+│   ├── Lexer.txt
+│   ├── Parser.txt
+│   ├── RecordManager.txt
+│   ├── StringPool.txt
+│   ├── pager.txt
+│   └── Task.txt             # Техническое задание и список учебных задач
 │
-├── docs/                     # Документация по курсовой
-│   ├── architecture.md       # Описание архитектуры СУБД
-│   └── diagrams/             # Схемы B-дерева, архитектуры хранения
+├── include/                  # Заголовочные файлы — публичные интерфейсы
+│   ├── api/                  # ConsoleInterface.hpp, Logger.hpp
+│   ├── catalog/              # Catalog.hpp — управление метаданными
+│   ├── core/                 # Executor.hpp — исполнитель запросов
+│   ├── index/                # b_star_plus_tree.hpp — интерфейс/реализация индекса
+│   ├── parser/               # Lexer.hpp, Parser.hpp
++  └── storage/              # Pager, BufferPool, RecordManager, StringPool, Table
+
+├── src/                      # Исходный код — реализации модулей
+│   ├── api/                  # REPL, форматирование вывода, Logger
+│   ├── core/                 # Executor.cpp
+│   ├── index/                # реализация индексной структуры (B+ дерево)
+│   ├── parser/               # Lexer.cpp, Parser.cpp
+│   ├── storage/              # Pager.cpp, BufferPool.cpp, RecordManager.cpp, StringPool.cpp, Table.cpp
+│   ├── utils/                # вспомогательные утилиты (если есть)
+│   ├── hello.cpp             # временный/тестовый файл (можно удалить)
+│   └── main.cpp              # точка входа: инициализация Catalog, Executor, REPL
 │
-├── scripts/                  # Скрипты для автоматизации
-│   ├── test_queries.sql      # Тестовые SQL-запросы для пакетного режима
-│   └── run_tests.sh          # Скрипт для быстрого прогона всех тестов
+├── tests/                    # Набор тестов (GoogleTest)
+│   ├── b_star_plus_tree_tests.cpp
+│   ├── test_buffer_pool.cpp
+│   ├── test_parser.cpp
+│   ├── test_pager.cpp
+│   ├── test_record_manager.cpp
+│   └── CMakeLists.txt
 │
-├── include/                  # Заголовочные файлы (.h / .hpp) — интерфейсы
-│   ├── api/                  # Обработка клиентских запросов (сеть, JSON)
-│   ├── core/                 # Движок СУБД (Executor, Plan)
-│   ├── index/                # Интерфейсы индексов (B-Tree, Hash)
-│   ├── parser/               # Лексический и синтаксический анализаторы
-│   ├── storage/              # Низкоуровневая работа с диском, Page Manager
-│   └── utils/                # Вспомогательные вещи (Logger, Timer)
+├── build/                    # Папка сборки (создаётся CMake/Make)
 │
-├── src/                      # Исходный код (.cpp) — реализация
-│   ├── api/
-│   ├── core/
-│   ├── index/
-│   ├── parser/
-│   ├── storage/
-│   ├── utils/
-|   |__ hello.cpp             #херня под удаление 
-│   └── main.cpp              # Точка входа (запуск сервера/CLI, разбор аргументов)
+├── db_data/                  # Рабочая директория СУБД (создаётся при запуске)
+│   ├── global_string_pool.bin # Пул уникальных строк (StringPool)
+│   └── <database_name>/       # Папки с файлами таблиц и индексами
+│       ├── <table_name>.bin   # файлы данных таблицы (Pager / RecordManager)
+│       └── <table_name>.idx   # файлы индекса (B+ дерево), если есть
 │
-├── tests/                    # Модульные и интеграционные тесты
-│   ├── CMakeLists.txt        # Локальный скрипт сборки тестов
-│   ├── test_index.cpp        # Тесты для B-дерева
-│   ├── test_parser.cpp       # Тесты парсера запросов
-│   └── test_storage.cpp      # Тесты записи/чтения страниц с диска
-│
-├── db_data/                  # РАБОЧАЯ ДИРЕКТОРИЯ СУБД (создается при работе программы)
-│   ├── global_metadata.json  # Список всех существующих баз данных
-│   ├── string_pool.bin       # [Задание 2] Единое хранилище уникальных строк
-│   │
-│   ├── database_alpha/       # Папка конкретной базы данных
-│   │   ├── db.meta           # Список таблиц в этой БД
-│   │   │
-│   │   └── users_table/      # Папка конкретной таблицы
-│   │       ├── schema.meta   # Типы колонок, флаги (NOT_NULL, INDEXED)
-│   │       ├── data.bin      # Сами записи 
-│   │       ├── column_id.idx # [Задание 0] Файл индекса B-tree для колонки "id"
-│   │       └── history/      # [Задание 1] Снапшоты/логи для REVERT
-│   │
-│   └── database_beta/        # Другая база данных
-│
-├── .gitignore                # Исключает build/, db_data/ и системные файлы из Git
-├── CMakeLists.txt            # Главный скрипт сборки проекта
-└── README.md                 # Инструкция по сборке и архитектуре проекта
+├── .gitignore                # Исключения: build/, db_data/, временные файлы
+├── CMakeLists.txt            # Главный скрипт сборки
+└── README.md                 # Инструкция по сборке и краткая архитектура
+
+Ключевые подсистемы (файлы в репозитории):
+- Инициализация и CLI: src/main.cpp, include/api/ConsoleInterface.hpp, src/api/ConsoleInterface.cpp
+- Каталог (метаданные): include/catalog/Catalog.hpp
+- Парсер: include/parser/Lexer.hpp, src/parser/Lexer.cpp, include/parser/Parser.hpp, src/parser/Parser.cpp
+- Исполнитель запросов: include/core/Executor.hpp, src/core/Executor.cpp
+- Хранилище и страничный менеджер: include/storage/Pager.hpp, src/storage/Pager.cpp
+- Буфер страниц: include/storage/BufferPool.hpp, src/storage/BufferPool.cpp
+- Менеджер записей: include/storage/RecordManager.hpp, src/storage/RecordManager.cpp
+- Пул строк: include/storage/StringPool.hpp, src/storage/StringPool.cpp
+- Таблица-обертка: include/storage/Table.hpp, src/storage/Table.cpp
+- Индекс: include/index/b_star_plus_tree.hpp
