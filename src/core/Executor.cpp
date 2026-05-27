@@ -240,7 +240,7 @@ void Executor::execute_select(const parser::SelectStatement& stmt) {
     std::vector<storage::Record> results;
     bool used_index = false;
 
-    if (stmt.where_clause) {
+    if (stmt.where_clause && !stmt.select_all && stmt.columns.size() == 1 && stmt.columns[0].aggregation.empty()) {
         if (auto bin = dynamic_cast<parser::BinaryExpr*>(stmt.where_clause.get())) {
             if (bin->op.value == "==") {
                 auto col = dynamic_cast<parser::ColumnExpr*>(bin->left.get());
@@ -280,28 +280,57 @@ void Executor::execute_select(const parser::SelectStatement& stmt) {
     }
 
     std::vector<std::vector<std::string>> rows;
-    for (const auto& r : results) {
+    
+    if (!stmt.columns.empty() && !stmt.columns[0].aggregation.empty()) {
         std::vector<std::string> row_strs;
-        if (stmt.select_all) {
+        for (const auto& c : stmt.columns) {
+            double res = 0;
+            int idx = -1;
             for (size_t i = 0; i < meta.columns.size(); ++i) {
-                if (meta.columns[i].type == "int") row_strs.push_back(std::to_string(r.values[i]));
-                else row_strs.push_back(catalog_.getStringPool().get_string(r.values[i]));
+                if (meta.columns[i].name == c.name) { idx = i; break; }
             }
-        } else {
-            for (const auto& c : stmt.columns) {
-                int idx = -1;
-                for (size_t i = 0; i < meta.columns.size(); ++i) {
-                    if (meta.columns[i].name == c.name) { idx = i; break; }
+            
+            if (c.aggregation == "sum") {
+                for (const auto& r : results) res += r.values[idx];
+            } else if (c.aggregation == "count") {
+                res = (double)results.size();
+            } else if (c.aggregation == "avg") {
+                if (!results.empty()) {
+                    for (const auto& r : results) res += r.values[idx];
+                    res /= results.size();
                 }
-                if (idx == -1) continue;
-                if (meta.columns[idx].type == "int") row_strs.push_back(std::to_string(r.values[idx]));
-                else row_strs.push_back(catalog_.getStringPool().get_string(r.values[idx]));
             }
+            std::string res_str = std::to_string(res);
+            res_str.erase(res_str.find_last_not_of('0') + 1, std::string::npos);
+            if (res_str.back() == '.') res_str.pop_back();
+            row_strs.push_back(res_str);
         }
         rows.push_back(row_strs);
+    } 
+    else {
+        for (const auto& r : results) {
+            std::vector<std::string> row_strs;
+            if (stmt.select_all) {
+                for (size_t i = 0; i < meta.columns.size(); ++i) {
+                    if (meta.columns[i].type == "int") row_strs.push_back(std::to_string(r.values[i]));
+                    else row_strs.push_back(catalog_.getStringPool().get_string(r.values[i]));
+                }
+            } else {
+                for (const auto& c : stmt.columns) {
+                    int idx = -1;
+                    for (size_t i = 0; i < meta.columns.size(); ++i) {
+                        if (meta.columns[i].name == c.name) { idx = i; break; }
+                    }
+                    if (idx == -1) continue;
+                    if (meta.columns[idx].type == "int") row_strs.push_back(std::to_string(r.values[idx]));
+                    else row_strs.push_back(catalog_.getStringPool().get_string(r.values[idx]));
+                }
+            }
+            rows.push_back(row_strs);
+        }
     }
 
     api::JsonFormatter::print(headers, rows);
 }
 
-}
+} 

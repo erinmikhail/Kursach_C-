@@ -147,7 +147,15 @@ std::unique_ptr<Statement> Parser::parse_select() {
     else {
         do {
             SelectColumn col;
-            col.name = consume().value;
+            std::string val = consume().value;
+            if (val == "sum" || val == "count" || val == "avg") {
+                col.aggregation = val;
+                expect(TokenType::SYMBOL, "(");
+                col.name = consume().value;
+                expect(TokenType::SYMBOL, ")");
+            } else {
+                col.name = val;
+            }
             if (match(TokenType::KEYWORD, "as")) col.alias = consume().value;
             stmt->columns.push_back(col);
         } while (match(TokenType::SYMBOL, ","));
@@ -193,28 +201,41 @@ std::unique_ptr<Statement> Parser::parse_use() {
 }
 
 std::unique_ptr<Expression> Parser::parse_expression(const TableMetadata& meta) {
-    return parse_comparison(meta);
-}
-
-std::unique_ptr<Expression> Parser::parse_comparison(const TableMetadata& meta) {
-    auto left = parse_primary(meta);
-
-    if (peek().type == TokenType::OPERATOR) {
-        auto op = consume();
-        auto right = parse_primary(meta);
-        auto bin = std::make_unique<BinaryExpr>(std::move(left), op, std::move(right));
-
-        if (peek().type == TokenType::KEYWORD && (peek().value == "and" || peek().value == "or")) {
-            auto log_op = consume();
-            auto next_cond = parse_comparison(meta); 
-            return std::make_unique<BinaryExpr>(std::move(bin), log_op, std::move(next_cond));
-        }
-        return bin;
+    auto left = parse_logical(meta);
+    while (match(TokenType::KEYWORD, "or")) {
+        Token op = previous();
+        auto right = parse_logical(meta);
+        left = std::make_unique<BinaryExpr>(std::move(left), op, std::move(right));
     }
     return left;
 }
 
-std::unique_ptr<Expression> Parser::parse_primary(const TableMetadata&) {
+std::unique_ptr<Expression> Parser::parse_logical(const TableMetadata& meta) {
+    auto left = parse_comparison(meta);
+    while (match(TokenType::KEYWORD, "and")) {
+        Token op = previous();
+        auto right = parse_comparison(meta);
+        left = std::make_unique<BinaryExpr>(std::move(left), op, std::move(right));
+    }
+    return left;
+}
+
+std::unique_ptr<Expression> Parser::parse_comparison(const TableMetadata& meta) {
+    auto left = parse_primary(meta);
+    if (peek().type == TokenType::OPERATOR) {
+        auto op = consume();
+        auto right = parse_primary(meta);
+        return std::make_unique<BinaryExpr>(std::move(left), op, std::move(right));
+    }
+    return left;
+}
+
+std::unique_ptr<Expression> Parser::parse_primary(const TableMetadata& meta) {
+    if (match(TokenType::SYMBOL, "(")) {
+        auto expr = parse_expression(meta);
+        expect(TokenType::SYMBOL, ")");
+        return expr;
+    }
     const Token& t = consume();
     if (t.type == TokenType::NUMBER || t.type == TokenType::STRING) return std::make_unique<LiteralExpr>(t);
     return std::make_unique<ColumnExpr>(t.value);
