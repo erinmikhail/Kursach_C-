@@ -8,7 +8,9 @@ namespace storage {
 
 // Динамическая структура записи
 struct Record {
-    bool is_deleted = false;         // Маркер удаленной записи (tombstone)
+    bool is_deleted;   // Маркер удаленной записи (tombstone)
+    uint64_t ts_start; // Время создания
+    uint64_t ts_end;   // Время удаления
     std::vector<uint32_t> values;    // Значения (числа или ID из StringPool)
 };
 

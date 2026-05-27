@@ -6,7 +6,7 @@ namespace storage {
 
 RecordManager::RecordManager(Pager& pager, uint32_t num_columns) 
     : pager_(pager), num_columns_(num_columns), total_records_(0) {
-    record_size_ = sizeof(bool) + num_columns_ * sizeof(uint32_t);
+    record_size_ = sizeof(bool) + 2 * sizeof(uint64_t) + num_columns_ * sizeof(uint32_t);
     
     if (pager_.get_num_pages() == 0) {
         pager_.allocate_page();
@@ -38,31 +38,32 @@ std::pair<uint32_t, size_t> RecordManager::get_location(uint32_t record_index) c
 }
 
 Record RecordManager::get_record(uint32_t record_index) {
-    if (record_index >= total_records_) {
-        throw std::out_of_range("");
-    }
+    if (record_index >= total_records_) throw std::out_of_range("");
     
     auto loc = get_location(record_index);
     std::vector<char> page_data = pager_.read_page(loc.first);
     
     Record rec;
     std::memcpy(&rec.is_deleted, &page_data[loc.second], sizeof(bool));
+    std::memcpy(&rec.ts_start, &page_data[loc.second + sizeof(bool)], sizeof(uint64_t));
+    std::memcpy(&rec.ts_end, &page_data[loc.second + sizeof(bool) + sizeof(uint64_t)], sizeof(uint64_t));
+    
     rec.values.resize(num_columns_);
-    std::memcpy(rec.values.data(), &page_data[loc.second + sizeof(bool)], num_columns_ * sizeof(uint32_t));
+    std::memcpy(rec.values.data(), &page_data[loc.second + sizeof(bool) + 2 * sizeof(uint64_t)], num_columns_ * sizeof(uint32_t));
     
     return rec;
 }
 
 void RecordManager::write_record(uint32_t record_index, const Record& record) {
-    if (record_index >= total_records_) {
-        throw std::out_of_range("");
-    }
+    if (record_index >= total_records_) throw std::out_of_range("");
     
     auto loc = get_location(record_index);
     std::vector<char> page_data = pager_.read_page(loc.first);
     
     std::memcpy(&page_data[loc.second], &record.is_deleted, sizeof(bool));
-    std::memcpy(&page_data[loc.second + sizeof(bool)], record.values.data(), num_columns_ * sizeof(uint32_t));
+    std::memcpy(&page_data[loc.second + sizeof(bool)], &record.ts_start, sizeof(uint64_t));
+    std::memcpy(&page_data[loc.second + sizeof(bool) + sizeof(uint64_t)], &record.ts_end, sizeof(uint64_t));
+    std::memcpy(&page_data[loc.second + sizeof(bool) + 2 * sizeof(uint64_t)], record.values.data(), num_columns_ * sizeof(uint32_t));
     
     pager_.write_page(loc.first, page_data);
 }

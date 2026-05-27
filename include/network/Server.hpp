@@ -26,7 +26,7 @@ private:
     
     // Подсистема асинхронности (Задание 6)
     std::string generate_uuid();
-    void handle_async(const std::string& query, const std::string& uuid);
+    void handle_async(const std::string& query, const std::string& uuid, const std::string& db_name);
     
     // Подсистема телеметрии (Задание 8)
     void update_telemetry(bool is_error, double duration);

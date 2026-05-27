@@ -18,6 +18,9 @@ private:
     Value eval_expr(parser::Expression* expr, const storage::Record& rec, const parser::TableMetadata& meta);
     bool eval_cond(parser::Expression* expr, const storage::Record& rec, const parser::TableMetadata& meta);
 
+    void execute_revert(const parser::RevertStatement& stmt);
+    uint64_t parse_timestamp(const std::string& ts);
+
 public:
     explicit Executor(catalog::Catalog& catalog) : catalog_(catalog) {}
     void execute(const parser::Statement& stmt);

@@ -169,9 +169,9 @@ struct SelectStatement : public Statement {
 };
 
 struct RevertStatement : public Statement {
+    RevertStatement() : Statement(StatementType::REVERT) {}
     std::string table_name;
     std::string timestamp;
-    RevertStatement() : Statement(StatementType::REVERT) {}
 };
 
 
