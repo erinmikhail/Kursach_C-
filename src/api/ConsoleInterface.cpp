@@ -1,7 +1,7 @@
 #include "api/ConsoleInterface.hpp"
 #include "parser/Lexer.hpp"
 #include "parser/Parser.hpp"
-#include "catalog/Catalog.hpp"
+
 
 #include <algorithm>
 #include <chrono>
@@ -77,6 +77,7 @@ void print_help_for(std::string_view topic) {
 
 }
 
+
 void JsonFormatter::print(const std::vector<std::string>& headers,
                           const std::vector<std::vector<std::string>>& rows) {
     std::cout << "[\n";
@@ -116,6 +117,10 @@ void TableFormatter::print_table(const std::vector<std::string>& headers,
     std::cout << border << "\n";
 }
 
+
+REPL::REPL(catalog::Catalog& catalog, core::Executor& executor) 
+    : catalog_(catalog), executor_(executor) {}
+
 void REPL::print_prompt() const {
     std::cout << "dbms > ";
     std::cout.flush();
@@ -143,13 +148,21 @@ MetaCommandResult REPL::execute_meta_command(const std::string& command) {
 }
 
 void REPL::execute_sql_query(const std::string& query) {
-    parser::Lexer lexer(query);
-    const auto tokens = lexer.tokenize();
-    catalog::Catalog db_catalog;
-    parser::Parser parser(tokens, db_catalog);
-    auto stmt = parser.parse();
-    
-    // Здесь позже мы будем передавать stmt (Statement) в Execution Engine
+    auto start = std::chrono::steady_clock::now();
+    try {
+        parser::Lexer lexer(query);
+        const auto tokens = lexer.tokenize();
+        parser::Parser parser(tokens, catalog_);
+        auto stmt = parser.parse();
+        executor_.execute(*stmt);
+        
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double, std::milli> diff = end - start;
+        logger_.log_request(query, "SUCCESS", diff.count());
+    } catch (const std::exception& e) {
+        logger_.log_request(query, std::string("ERROR: ") + e.what(), 0.0);
+        std::cerr << "Ошибка: " << e.what() << std::endl;
+    }
 }
 
 bool REPL::process_line(const std::string& input) {
@@ -170,7 +183,7 @@ bool REPL::process_line(const std::string& input) {
             }
         } else {
             execute_sql_query(input);
-            std::cout << "SQL запрос принят к обработке: " << input << "\n";
+
         }
     } catch (const std::exception& ex) {
         status = std::string("ERROR: ") + ex.what();
@@ -206,4 +219,4 @@ void REPL::start() {
     }
 }
 
-}
+} 

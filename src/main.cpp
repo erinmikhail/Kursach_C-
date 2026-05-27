@@ -1,8 +1,13 @@
+#include "catalog/Catalog.hpp"
+#include "core/Executor.hpp"
 #include "api/ConsoleInterface.hpp"
 #include <iostream>
 
 int main(int argc, char* argv[]) {
-    api::REPL repl;
+    catalog::Catalog catalog;            
+    core::Executor executor(catalog);    
+
+    api::REPL repl(catalog, executor);
     
     if (argc == 1) {
         repl.start();

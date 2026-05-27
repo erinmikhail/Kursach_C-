@@ -1,16 +1,19 @@
 #include <gtest/gtest.h>
 #include "api/ConsoleInterface.hpp"
-#include <sstream>
+#include "catalog/Catalog.hpp"
+#include "core/Executor.hpp"
 
 TEST(ConsoleTest, MetaCommandExit) {
-    api::REPL repl;
-    
-    // Проверяем, что .exit возвращает false (сигнал к выходу)
+    catalog::Catalog catalog;
+    core::Executor executor(catalog);
+    api::REPL repl(catalog, executor);
     EXPECT_FALSE(repl.process_line(".exit"));
 }
 
 TEST(ConsoleTest, MetaCommandClear) {
-    api::REPL repl; 
+    catalog::Catalog catalog;
+    core::Executor executor(catalog);
+    api::REPL repl(catalog, executor);
     
     EXPECT_TRUE(repl.process_line(".clear"));
 }

@@ -8,6 +8,7 @@ add_library(db_engine_lib STATIC
     storage/RecordManager.cpp
     storage/StringPool.cpp
     storage/Table.cpp
+    core/Executor.cpp
 )
 
 target_include_directories(db_engine_lib PUBLIC ${CMAKE_SOURCE_DIR}/include)
