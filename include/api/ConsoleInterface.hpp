@@ -1,52 +1,60 @@
 #pragma once
 
+#include "api/Logger.hpp"
+#include "catalog/Catalog.hpp"
+#include "core/Executor.hpp"
 #include <string>
 #include <vector>
 
 namespace api {
 
-
-  //Результат выполнения мета-команды.
+// Результат выполнения мета-команды.
 enum class MetaCommandResult {
     SUCCESS,
     UNRECOGNIZED_COMMAND,
     EXIT_REQUESTED
 };
 
- //Утилита для красивого форматирования вывода результатов SQL-запросов.
- //Динамически рассчитывает ширину колонок и отрисовывает псевдографическую ASCII-таблицу.
+// Утилита для форматирования вывода в формате JSON (согласно ТЗ).
+class JsonFormatter {
+public:
+    static void print(const std::vector<std::string>& headers, 
+                      const std::vector<std::vector<std::string>>& rows);
+};
+
+// Утилита для псевдографического вывода (для отладки).
 class TableFormatter {
 public:
-    //Отрисовывает таблицу в стандартный вывод (std::cout).
-    //headers Вектор строк с названиями колонок (например, {"id", "name"}).
-    //rows Двумерный вектор строк с данными (например, {{"1", "Apple"}, {"2", "Banana"}}).
     static void print_table(const std::vector<std::string>& headers, 
                             const std::vector<std::vector<std::string>>& rows);
 };
 
-    //Read-Eval-Print Loop. Главный цикл взаимодействия пользователя с СУБД.
+// Read-Eval-Print Loop. Главный цикл взаимодействия пользователя с СУБД.
 class REPL {
-private:
-    //Печатает приглашение ко вводу.
-    void print_prompt() const;
-
-    //Читает строку из стандартного ввода.
-    //input Ссылка на строку, куда будет записан ввод.
-    void read_input(std::string& input) const;
-
-    //Обрабатывает служебные команды (начинающиеся с точки).
-    //command Текст команды (например, ".exit").
-    // return MetaCommandResult Статус выполнения команды.
-    MetaCommandResult execute_meta_command(const std::string& command);
-
 public:
-    REPL() = default;
+    // ОБНОВЛЕННЫЙ КОНСТРУКТОР: принимает Каталог и Исполнитель
+    REPL(catalog::Catalog& catalog, core::Executor& executor);
     ~REPL() = default;
 
-
-    //Запускает бесконечный цикл обработки команд.
-    //Выход из цикла происходит только при получении команды .exit.
+    // Запускает интерактивный бесконечный цикл обработки команд.
     void start();
+
+    // Запускает пакетный режим (чтение команд из файла).
+    void run_batch(const std::string& filename);
+    
+    // Вспомогательный метод для обработки одной строки (замер времени и логирование)
+    bool process_line(const std::string& input);
+
+private:
+    catalog::Catalog& catalog_; // Ссылка на общий каталог базы данных
+    core::Executor& executor_;  // Ссылка на исполнитель запросов
+    Logger logger_;             // Объект логгера для записи активности
+
+    void print_prompt() const;
+    void read_input(std::string& input) const;
+    
+    void execute_sql_query(const std::string& query);
+    MetaCommandResult execute_meta_command(const std::string& command);
 };
 
 } 

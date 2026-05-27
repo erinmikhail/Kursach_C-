@@ -33,11 +33,13 @@ std::vector<Token> Lexer::tokenize() {
     tokens.reserve(input_.size() / 5); 
 
     static const std::unordered_set<std::string> keywords = {
-        "insert", "select", "from", "where", "update", "delete", "create", "table"
+        "insert", "into", "value", "select", "set", "from", "where", "update", "delete", "create", "table",
+        "int", "string", "not_null", "indexed", "default", "between", "and", "or", 
+        "like", "sum", "count", "avg", "as", "database", "use", "revert"
     };
 
     static const std::unordered_set<char> symbols = {
-        '*', ',', ';', '(', ')', '=', '<', '>'
+        '*', ',', ';', '(', ')', '=', '<', '>', '!'
     };
 
     while (pos_ < input_.size()) {
@@ -50,32 +52,43 @@ std::vector<Token> Lexer::tokenize() {
         size_t start_pos = pos_;
         char current = peek();
 
-        if (std::isdigit(static_cast<unsigned char>(current)) || 
-           (current == '-' && std::isdigit(static_cast<unsigned char>(input_[pos_ + 1])))) {
+        if (std::isdigit(static_cast<unsigned char>(current))) {
+            bool is_timestamp = false;
             
-            if (current == '-') advance();
-            
-            while (std::isdigit(static_cast<unsigned char>(peek()))) {
-                advance();
-            }
-            
-            if (peek() == '.') {
-                advance();
-                while (std::isdigit(static_cast<unsigned char>(peek()))) {
-                    advance();
+            while (pos_ < input_.size() && (
+                   std::isdigit(static_cast<unsigned char>(peek())) || 
+                   peek() == '.' || peek() == '-' || peek() == ':')) {
+                
+                char next = peek();
+                if (next == '-' || next == ':') {
+                    is_timestamp = true;
                 }
+                if (next == '.' && is_timestamp == false) {
+                    for (size_t i = pos_ + 1; i < input_.size() && !std::isspace(input_[i]); ++i) {
+                        if (input_[i] == '.' || input_[i] == '-' || input_[i] == ':') {
+                            is_timestamp = true;
+                            break;
+                        }
+                    }
+                }
+                advance();
             }
             
-            tokens.push_back({TokenType::NUMBER, input_.substr(start_pos, pos_ - start_pos)});
+            std::string value = input_.substr(start_pos, pos_ - start_pos);
+            if (is_timestamp) {
+                tokens.push_back({TokenType::TIMESTAMP, std::move(value)});
+            } else {
+                tokens.push_back({TokenType::NUMBER, std::move(value)});
+            }
         }
 
-        else if (current == '\'') {
+        else if (current == '"') {
             advance();
             size_t str_start = pos_;
             bool closed = false;
 
             while (pos_ < input_.size()) {
-                if (peek() == '\'') {
+                if (peek() == '"') {
                     closed = true;
                     break;
                 }
@@ -94,7 +107,7 @@ std::vector<Token> Lexer::tokenize() {
 
         else if (std::isalpha(static_cast<unsigned char>(current)) || current == '_') {
             while (pos_ < input_.size() && 
-                   (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_')) {
+                   (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_' || peek() == '.')) {
                 advance();
             }
 
@@ -111,8 +124,23 @@ std::vector<Token> Lexer::tokenize() {
             }
         }
 
-        else if (symbols.find(current) != symbols.end()) {
-            tokens.push_back({TokenType::SYMBOL, std::string(1, advance())});
+        else if (symbols.count(current)) {
+            std::string op(1, advance());
+            char next = peek();
+
+            if (next == '=') {
+                if (current == '=' || current == '!' || current == '<' || current == '>') {
+                    op += advance();
+                    tokens.push_back({TokenType::OPERATOR, std::move(op)});
+                    continue;
+                }
+            }
+            
+            if (current == '=' || current == '<' || current == '>') {
+                tokens.push_back({TokenType::OPERATOR, std::move(op)});
+            } else {
+                tokens.push_back({TokenType::SYMBOL, std::move(op)});
+            }
         }
 
         else {
