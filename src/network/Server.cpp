@@ -14,7 +14,13 @@
 namespace network {
 
 Server::Server(int port, catalog::Catalog& catalog, core::Executor& executor, api::Logger& logger)
-    : port_(port), server_fd_(-1), running_(false), catalog_(catalog), executor_(executor), logger_(logger) {}
+    : auth_manager_("auth.bin"),
+      port_(port), 
+      server_fd_(-1), 
+      running_(false), 
+      catalog_(catalog), 
+      executor_(executor), 
+      logger_(logger) {}
 
 Server::~Server() {
     stop();
@@ -173,8 +179,10 @@ void Server::start() {
 }
 
 void Server::process_client(int client_socket) {
-    char buffer[4096] = {0};
-    while (true) {
+    char buffer[4096];
+    std::string current_user = "";
+
+    while (running_) {
         memset(buffer, 0, 4096);
         int valread = read(client_socket, buffer, 4096);
         if (valread <= 0) break;
@@ -183,54 +191,62 @@ void Server::process_client(int client_socket) {
         if (!query.empty() && query.back() == '\n') query.pop_back();
 
         if (query == ".exit") {
-            send(client_socket, "Server shutting down...\n", 24, 0);
-            running_ = false;
-            break; 
+            send(client_socket, "Bye!\n", 5, 0);
+            break;
+        }
+
+        if (query.rfind("LOGIN ", 0) == 0) {
+            std::stringstream ss(query);
+            std::string cmd, u, p; ss >> cmd >> u >> p;
+            try {
+                std::string jwt = auth_manager_.login(u, p);
+                std::string resp = "Token: " + jwt + "\n";
+                send(client_socket, resp.c_str(), resp.length(), 0);
+            } catch (...) { send(client_socket, "Login fail\n", 11, 0); }
+            continue;
+        }
+
+        if (query.rfind("AUTH ", 0) == 0) {
+            try {
+                current_user = auth_manager_.validate_jwt(query.substr(5));
+                send(client_socket, "OK\n", 3, 0);
+            } catch (...) { send(client_socket, "Auth fail\n", 10, 0); }
+            continue;
+        }
+
+        if (current_user.empty()) {
+            send(client_socket, "Login required\n", 15, 0);
+            continue;
+        }
+
+        try {
+            parser::Lexer lexer(query);
+            auto stmt = parser::Parser(lexer.tokenize(), catalog_).parse();
+            if (!auth_manager_.check_permission(current_user, catalog_.getActiveDatabase(), stmt->type)) {
+                send(client_socket, "Access Denied\n", 14, 0);
+                continue;
+            }
+        } catch (...) {}
+
+        if (query.rfind("ASYNC ", 0) == 0) {
+            std::string uuid = generate_uuid();
+            { std::lock_guard<std::mutex> lock(async_mutex_); async_done_[uuid] = false; }
+            std::thread(&Server::handle_async, this, query.substr(6), uuid, catalog_.getActiveDatabase()).detach();
+            std::string resp = "GUID: " + uuid + "\n";
+            send(client_socket, resp.c_str(), resp.length(), 0);
+            continue;
         }
 
         if (query == "TELEMETRY") {
-            std::string response = get_telemetry_report();
-            send(client_socket, response.c_str(), response.length(), 0);
+            std::string resp = get_telemetry_report();
+            send(client_socket, resp.c_str(), resp.length(), 0);
             continue;
         }
 
-        if (query.rfind("ASYNC ", 0) == 0) {
-            std::string actual_query = query.substr(6);
-            std::string uuid = generate_uuid();
-            {
-                std::lock_guard<std::mutex> lock(async_mutex_);
-                async_done_[uuid] = false;
-            }
-            std::string current_db = catalog_.getActiveDatabase();
-            std::thread(&Server::handle_async, this, actual_query, uuid, current_db).detach();
-            std::string response = "Task accepted. GUID: " + uuid + "\n";
-            send(client_socket, response.c_str(), response.length(), 0);
-            continue;
-        }
-
-        if (query.rfind("STATUS ", 0) == 0) {
-            std::string uuid = query.substr(7);
-            std::lock_guard<std::mutex> lock(async_mutex_);
-            if (async_done_.find(uuid) == async_done_.end()) {
-                std::string resp = "Invalid GUID\n";
-                send(client_socket, resp.c_str(), resp.length(), 0);
-            } else if (!async_done_[uuid]) {
-                std::string resp = "RUNNING\n";
-                send(client_socket, resp.c_str(), resp.length(), 0);
-            } else {
-                std::string resp = "DONE. Result:\n" + async_results_[uuid] + "\n";
-                send(client_socket, resp.c_str(), resp.length(), 0);
-            }
-            continue;
-        }
-
-        bool is_error = false;
-        double duration = 0.0;
-        std::string response = execute_query(query, is_error, duration);
-        update_telemetry(is_error, duration);
-
-        if (response.empty()) response = "OK\n";
-        send(client_socket, response.c_str(), response.length(), 0);
+        bool err; double dur;
+        std::string resp = execute_query(query, err, dur);
+        update_telemetry(err, dur);
+        send(client_socket, resp.empty() ? "OK\n" : resp.c_str(), resp.empty() ? 3 : resp.length(), 0);
     }
     close(client_socket);
 }

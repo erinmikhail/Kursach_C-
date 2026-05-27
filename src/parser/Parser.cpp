@@ -167,10 +167,18 @@ std::unique_ptr<Statement> Parser::parse_delete() {
 }
 
 std::unique_ptr<Statement> Parser::parse_drop() {
-    consume(); consume();
-    auto stmt = std::make_unique<DropTableStatement>();
-    stmt->table_name = consume().value;
-    return stmt;
+    consume(); 
+    std::string what = consume().value;
+    if (what == "table") {
+        auto stmt = std::make_unique<DropTableStatement>();
+        stmt->table_name = consume().value;
+        return stmt;
+    } else if (what == "database") {
+        auto stmt = std::make_unique<DropDatabaseStatement>();
+        stmt->db_name = consume().value;
+        return stmt;
+    }
+    throw std::invalid_argument("Ожидалось DATABASE или TABLE");
 }
 
 std::unique_ptr<Statement> Parser::parse_use() {

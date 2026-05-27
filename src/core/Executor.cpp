@@ -229,23 +229,17 @@ void Executor::execute_revert(const parser::RevertStatement& stmt) {
     auto all_recs = table.scan_all();
     for (uint32_t row_id = 0; row_id < all_recs.size(); ++row_id) {
         auto r = all_recs[row_id];
-        bool changed = false;
-        int idx_col = table.get_indexed_col();
 
         if (r.ts_start > target_ts) {
-            if (!r.is_deleted && idx_col != -1) table.remove_from_index(r.values[idx_col], row_id);
             r.is_deleted = true;
-            changed = true;
-        }
-        else if (r.ts_end > target_ts && r.ts_start <= target_ts) {
-            if (r.is_deleted && idx_col != -1) table.add_to_index(r.values[idx_col], row_id);
+        } 
+        else if (r.ts_start <= target_ts && r.ts_end > target_ts) {
             r.is_deleted = false;
-            r.ts_end = ULLONG_MAX;
-            changed = true;
         }
 
-        if (changed) table.update_record(row_id, r);
+        table.update_record(row_id, r);
     }
+    std::cout << "Database reverted to " << stmt.timestamp << "\n";
 }
 
 void Executor::execute_select(const parser::SelectStatement& stmt) {
@@ -268,7 +262,9 @@ void Executor::execute_select(const parser::SelectStatement& stmt) {
                         std::stoi(lit->value.value) : catalog_.getStringPool().get_or_add_string(lit->value.value);
 
                     storage::Record found_rec;
-                    if (table.find_by_id(search_val, found_rec) && !found_rec.is_deleted) results.push_back(found_rec);
+                    if (table.find_by_id(search_val, found_rec) && !found_rec.is_deleted && found_rec.ts_end == ULLONG_MAX) {
+                        results.push_back(found_rec);
+                    }
                     used_index = true;
                 }
             }
@@ -278,8 +274,12 @@ void Executor::execute_select(const parser::SelectStatement& stmt) {
     if (!used_index) {
         auto all_recs = table.scan_all();
         for (const auto& r : all_recs) {
-            if (r.is_deleted) continue;
-            if (eval_cond(stmt.where_clause.get(), r, meta)) results.push_back(r);
+
+            if (r.is_deleted || r.ts_end != ULLONG_MAX) continue; 
+            
+            if (eval_cond(stmt.where_clause.get(), r, meta)) {
+                results.push_back(r);
+            }
         }
     }
 
@@ -295,6 +295,8 @@ void Executor::execute_select(const parser::SelectStatement& stmt) {
             double res = 0;
             int idx = -1;
             for (size_t i = 0; i < meta.columns.size(); ++i) if (meta.columns[i].name == c.name) { idx = i; break; }
+            if (idx == -1) continue;
+            
             if (c.aggregation == "sum") { for (const auto& r : results) res += r.values[idx]; } 
             else if (c.aggregation == "count") { res = (double)results.size(); } 
             else if (c.aggregation == "avg") { if (!results.empty()) { for (const auto& r : results) res += r.values[idx]; res /= results.size(); } }
@@ -305,23 +307,17 @@ void Executor::execute_select(const parser::SelectStatement& stmt) {
             row_strs.push_back(res_str);
         }
         rows.push_back(row_strs);
-    } 
-    else {
+    } else {
         for (const auto& r : results) {
             std::vector<std::string> row_strs;
-            if (stmt.select_all) {
-                for (size_t i = 0; i < meta.columns.size(); ++i) {
-                    if (meta.columns[i].type == "int") row_strs.push_back(std::to_string(r.values[i]));
-                    else row_strs.push_back(catalog_.getStringPool().get_string(r.values[i]));
+            for (size_t i = 0; i < (stmt.select_all ? meta.columns.size() : stmt.columns.size()); ++i) {
+                int idx = stmt.select_all ? i : -1;
+                if (!stmt.select_all) {
+                    for (size_t k = 0; k < meta.columns.size(); ++k) if (meta.columns[k].name == stmt.columns[i].name) { idx = k; break; }
                 }
-            } else {
-                for (const auto& c : stmt.columns) {
-                    int idx = -1;
-                    for (size_t i = 0; i < meta.columns.size(); ++i) if (meta.columns[i].name == c.name) { idx = i; break; }
-                    if (idx == -1) continue;
-                    if (meta.columns[idx].type == "int") row_strs.push_back(std::to_string(r.values[idx]));
-                    else row_strs.push_back(catalog_.getStringPool().get_string(r.values[idx]));
-                }
+                if (idx == -1) continue;
+                if (meta.columns[idx].type == "int") row_strs.push_back(std::to_string(r.values[idx]));
+                else row_strs.push_back(catalog_.getStringPool().get_string(r.values[idx]));
             }
             rows.push_back(row_strs);
         }

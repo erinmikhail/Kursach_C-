@@ -8,6 +8,8 @@ TEST(RecordManagerTest, AppendAndGet) {
     
     storage::Record rec;
     rec.is_deleted = false;
+    rec.ts_start = 0;
+    rec.ts_end = 0;
     rec.values = {10, 1};
     
     manager.append_record(rec);
@@ -21,6 +23,8 @@ TEST(RecordManagerTest, PageCrossing) {
     for (int i = 0; i < 600; ++i) {
         storage::Record rec;
         rec.is_deleted = false;
+        rec.ts_start = 0; 
+        rec.ts_end = 0;
         rec.values = {(uint32_t)(i * 10), (uint32_t)i};
         manager.append_record(rec);
     }

@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <deque>
 #include <chrono>
+#include "security/AuthManager.hpp"
+
 
 namespace network {
 
@@ -23,6 +25,8 @@ public:
 private:
     void process_client(int client_socket);
     std::string execute_query(const std::string& query, bool& is_error, double& duration);
+
+    security::AuthManager auth_manager_;
     
     // Подсистема асинхронности (Задание 6)
     std::string generate_uuid();
